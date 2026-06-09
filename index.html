@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.24 ===== */
+  /* ===== WeaselOMeter v0.1.25 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -33,9 +33,17 @@
   .brand h1{font-size:30px; margin:0; letter-spacing:.01em}
   .brand .tag{font-size:13px; color:var(--muted); font-style:italic}
 
-  .gauge{flex:0 0 120px; text-align:center}
+  .gauge{flex:0 0 184px; text-align:center}
   /* weasel gauge: faint chap = empty; full-colour chap revealed bottom->top = fill (no CSS mask) */
-  .wgauge{position:relative; width:118px; height:118px; margin:0 auto}
+  .gaugewrap{display:inline-flex; align-items:flex-end; gap:3px}
+  .wgauge{position:relative; width:118px; height:118px; margin:0}
+  /* ruler scale with tier ticks + a caret at the current weasel level */
+  .wscale{position:relative; width:50px; height:118px; font-family:ui-monospace,Menlo,Consolas,monospace}
+  .wscale .tk{position:absolute; left:9px; right:2px; height:0; border-top:1px solid var(--line)}
+  .wscale .tk span{position:absolute; left:3px; top:-7px; font-size:10px; color:var(--muted)}
+  .wscale .caret{position:absolute; left:-3px; transform:translateY(50%); line-height:1; white-space:nowrap;
+    color:var(--ink); font-size:11px; font-weight:700}
+  .wscale .caret b{font-size:12px; margin-left:1px}
   .wgauge img{position:absolute; left:0; bottom:0; width:118px; height:118px; object-fit:contain; display:block}
   .wgauge .wbase{opacity:.20}
   .wfillwrap{position:absolute; left:0; right:0; bottom:0; overflow:hidden; transition:height .35s ease}
@@ -230,7 +238,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.24</span>
+      <span class="ver" id="verTop">v0.1.25</span>
     </div>
   </div>
 </div>
@@ -377,7 +385,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.24</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.25</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -385,8 +393,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.24 ================= */
-const VERSION = "0.1.24";
+/* ================= WeaselOMeter v0.1.25 ================= */
+const VERSION = "0.1.25";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -808,28 +816,35 @@ function renderScore(R){
     s.innerHTML='<b>'+c.name+'</b> '+b.count+(b.count?(' ('+b.points+'pt)'):'');
     chips.appendChild(s);
   }
-  drawGauge(R.fillPct);
+  drawGauge(R);
 }
 
 /* ---- SVG weasel gauge: faint outline + colour fill rising bottom->top ----
    To swap in the meerkat image later: replace this SVG with an <img> + mask,
    or build a clipPath from the meerkat silhouette. Inline SVG for now. */
 const GAUGE_IMG='WeaselChap.png'; // swap this filename to change the gauge art
-function drawGauge(pct){
+function drawGauge(R){
+  const pct=R.fillPct, ws=Math.round(R.wsScore);
+  const sat=(DICT.calibration&&DICT.calibration.fillSaturationScore)||100;
   const hue=Math.round(120-(pct/100)*120); // 120 green .. 0 red
   const col='hsl('+hue+',70%,48%)';
-  // wbase = faint full chap (empty). wfillwrap reveals the full-colour chap from the bottom up.
-  // wtint (optional, mask-based) shifts the revealed area toward the WS colour; if mask is
-  // unsupported it simply has no visible effect — the chap still fills correctly.
+  const weasel =
+    '<img class="wbase" src="'+GAUGE_IMG+'" alt="">'+
+    '<div class="wfillwrap" style="height:'+pct+'%">'+
+      '<img class="wfillimg" src="'+GAUGE_IMG+'" alt="">'+
+      '<div class="wtint" style="background:'+col+'"></div>'+
+    '</div>';
+  // ruler ticks at the tier boundaries (mapped through the same fill transform)
+  const ticks=(DICT.tiers||[]).map(t=>+t.max).filter(m=>m>0 && m<100)
+    .map(m=>{ const h=Math.min(100, m/sat*100); return '<div class="tk" style="bottom:'+h+'%"><span>'+m+'</span></div>'; }).join('');
   $('#gaugeBox').innerHTML =
-    '<div class="wgauge" role="img" aria-label="Weasel gauge '+Math.round(pct)+'% full">'+
-      '<img class="wbase" src="'+GAUGE_IMG+'" alt="">'+
-      '<div class="wfillwrap" style="height:'+pct+'%">'+
-        '<img class="wfillimg" src="'+GAUGE_IMG+'" alt="">'+
-        '<div class="wtint" style="background:'+col+'"></div>'+
+    '<div class="gaugewrap">'+
+      '<div class="wgauge" role="img" aria-label="Weasel gauge, WS '+ws+' of 100">'+weasel+'</div>'+
+      '<div class="wscale">'+ticks+
+        '<div class="caret" style="bottom:'+pct+'%" title="WS '+ws+'">◀<b>'+ws+'</b></div>'+
       '</div>'+
     '</div>'+
-    '<div class="ver" style="margin-top:2px">'+Math.round(pct)+'% weasel</div>';
+    '<div class="ver" style="margin-top:2px">WS '+ws+' / 100</div>';
 }
 
 /* ================= SIDE PANEL (track-changes style) ================= */
