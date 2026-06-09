@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.22 ===== */
+  /* ===== WeaselOMeter v0.1.23 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -52,6 +52,9 @@
   .cats{display:flex; flex-wrap:wrap; gap:7px; margin-top:8px}
   .chip{font-size:13px; padding:3px 9px; border-radius:20px; color:#fff; white-space:nowrap; opacity:.92}
   .chip b{font-weight:600}
+  #catChips .chip{cursor:pointer; opacity:.95; transition:opacity .12s}
+  #catChips .chip.empty{opacity:.4; cursor:default}
+  #catChips .chip.off{opacity:.28}
 
   .actions{flex:0 0 auto; display:flex; flex-direction:column; gap:7px; align-items:flex-end}
   button,.btn{font-family:inherit; font-size:15px; cursor:pointer; border:1px solid var(--line);
@@ -218,7 +221,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.22</span>
+      <span class="ver" id="verTop">v0.1.23</span>
     </div>
   </div>
 </div>
@@ -356,7 +359,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.22</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.23</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -364,8 +367,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.22 ================= */
-const VERSION = "0.1.22";
+/* ================= WeaselOMeter v0.1.23 ================= */
+const VERSION = "0.1.23";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -781,9 +784,9 @@ function renderScore(R){
   const chips=$('#catChips'); chips.innerHTML='';
   for(const [code,c] of Object.entries(DICT.categories)){
     const b=R.byCat[code]||{points:0,count:0};
-    const s=document.createElement('span'); s.className='chip'; s.style.background='var(--'+code+')';
+    const s=document.createElement('span'); s.className='chip'+(b.count?'':' empty'); s.dataset.cat=code;
+    s.style.background='var(--'+code+')';
     s.innerHTML='<b>'+c.name+'</b> '+b.count+(b.count?(' ('+b.points+'pt)'):'');
-    s.style.opacity=b.count?'0.95':'0.4';
     chips.appendChild(s);
   }
   drawGauge(R.fillPct);
@@ -813,7 +816,8 @@ function drawGauge(pct){
 /* ================= SIDE PANEL (track-changes style) ================= */
 const catName=code=>(DICT&&DICT.categories[code]&&DICT.categories[code].name)||code;
 const catVar =code=>'var(--'+code+')';
-let activeCats=null;   // Set of category codes currently shown (null = all)
+let activeCats=null;   // Set of category codes currently shown
+let presentCats=[];    // categories that actually have highlights in this doc
 
 function escHtml(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 /* render inline Markdown (**bold**, *italic*, _italic_, `code`) in feedback; falls back to escaped text */
@@ -828,17 +832,36 @@ function buildPanel(doc){
   const marks=[...doc.querySelectorAll('mark')];
   marks.forEach((m,i)=>{ m.dataset.idx=i; });
   // which categories are present, in dictionary order
-  const present=Object.keys(DICT.categories).filter(c=>marks.some(m=>m.dataset.cat===c));
-  activeCats=new Set(present);
+  presentCats=Object.keys(DICT.categories).filter(c=>marks.some(m=>m.dataset.cat===c));
+  activeCats=new Set(presentCats);
 
   // filters
-  $('#spFilters').innerHTML = present.map(c=>{
+  $('#spFilters').innerHTML = presentCats.map(c=>{
     const n=marks.filter(m=>m.dataset.cat===c).length;
     return `<span class="chip on" data-cat="${c}" style="background:${catVar(c)}"><b>${escHtml(DICT.categories[c].name)}</b> ${n}</span>`;
   }).join('') || '<span class="ver">no highlights</span>';
 
-  // list
-  renderPanelList(marks);
+  applyFilter();   // syncs marks, both chip rows, and the list
+}
+
+/* isolate one category (click again to show all) — used by top + sidebar chips */
+function toggleCat(c){
+  if(!presentCats.includes(c)) return;   // ignore categories with no highlights
+  if(activeCats.size===1 && activeCats.has(c)) activeCats=new Set(presentCats);  // already sole -> show all
+  else activeCats=new Set([c]);          // isolate to this one
+  applyFilter();
+}
+/* reflect activeCats everywhere: doc marks, both chip rows, the list */
+function applyFilter(){
+  const doc=$('#doc');
+  for(const c of presentCats){
+    const on=activeCats.has(c);
+    doc.querySelectorAll('mark.'+c).forEach(m=>m.classList.toggle('muted', !on));
+  }
+  const filtering = activeCats.size>0 && activeCats.size<presentCats.length;
+  $('#spFilters').querySelectorAll('.chip').forEach(ch=>{ if(ch.dataset.cat) ch.classList.toggle('on', activeCats.has(ch.dataset.cat)); });
+  $('#catChips').querySelectorAll('.chip').forEach(ch=>{ if(ch.dataset.cat) ch.classList.toggle('off', filtering && !activeCats.has(ch.dataset.cat)); });
+  renderPanelList();
 }
 
 function renderPanelList(marks){
@@ -881,14 +904,12 @@ function setActive(idx, scrollPanel){
 }
 function flash(mark){ mark.classList.remove('flash'); void mark.offsetWidth; mark.classList.add('flash'); }
 
-/* category filters: toggle list + fade the corresponding marks */
+/* category filters: clicking a pill (sidebar OR top score panel) isolates that category */
 $('#spFilters').addEventListener('click', e=>{
-  const chip=e.target.closest('.chip'); if(!chip||!chip.dataset.cat) return;
-  const c=chip.dataset.cat;
-  if(activeCats.has(c)) activeCats.delete(c); else activeCats.add(c);
-  chip.classList.toggle('on', activeCats.has(c));
-  $('#doc').querySelectorAll('mark.'+c).forEach(m=>m.classList.toggle('muted', !activeCats.has(c)));
-  renderPanelList();
+  const chip=e.target.closest('.chip'); if(chip&&chip.dataset.cat) toggleCat(chip.dataset.cat);
+});
+$('#catChips').addEventListener('click', e=>{
+  const chip=e.target.closest('.chip'); if(chip&&chip.dataset.cat) toggleCat(chip.dataset.cat);
 });
 
 /* collapse / reopen */
