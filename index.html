@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.11 ===== */
+  /* ===== WeaselOMeter v0.1.12 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -60,8 +60,45 @@
   button:disabled{opacity:.4; cursor:not-allowed}
   .linkish{background:none;border:none;color:var(--tla);text-decoration:underline;padding:0;font-size:13px;cursor:pointer}
 
-  /* ---- scrollable document ---- */
+  /* ---- review area: document + side panel ---- */
+  #review{flex:1 1 auto; display:flex; min-height:0; position:relative}
   #docscroll{flex:1 1 auto; overflow:auto}
+
+  /* ---- side panel (track-changes style) ---- */
+  #sidepanel{flex:0 0 350px; display:flex; flex-direction:column; min-height:0;
+    border-left:1px solid var(--line); background:var(--panel)}
+  #sidepanel.collapsed{display:none}
+  .sp-head{flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:11px 14px; border-bottom:1px solid var(--line)}
+  .sp-head strong{font-size:16px}
+  .sp-head button{margin-left:auto; font-family:inherit; font-size:13px; cursor:pointer;
+    border:1px solid var(--line); background:#fff; padding:4px 9px; border-radius:7px}
+  .sp-head button:hover{background:#f0eadd}
+  .sp-filters{flex:0 0 auto; display:flex; flex-wrap:wrap; gap:6px; padding:9px 12px; border-bottom:1px solid var(--line)}
+  .sp-filters .chip{cursor:pointer; opacity:.4; user-select:none}
+  .sp-filters .chip.on{opacity:.95}
+  .sp-list{flex:1 1 auto; overflow:auto; padding:7px}
+  .sp-empty{color:var(--muted); font-style:italic; padding:24px 14px; text-align:center}
+  .sp-item{padding:8px 10px; border-radius:9px; cursor:pointer; border:1px solid transparent; margin-bottom:3px}
+  .sp-item:hover{background:#00000008}
+  .sp-item.active{background:#fff; border-color:var(--cb); box-shadow:0 1px 6px rgba(0,0,0,.07)}
+  .sp-item .meta{display:flex; align-items:center; gap:6px; font-size:11px; text-transform:uppercase;
+    letter-spacing:.05em; font-weight:600; color:var(--muted); margin-bottom:3px}
+  .sp-item .dot{width:9px; height:9px; border-radius:50%; flex:0 0 auto}
+  .sp-item .sc{margin-left:auto; text-transform:none; letter-spacing:0}
+  .sp-item .ph{font-weight:600; font-size:16px}
+  .sp-item .fb{font-size:14px; color:var(--muted); font-style:italic; margin-top:1px}
+  #spReopen{position:absolute; top:10px; right:10px; z-index:6; font-family:inherit; font-size:13px;
+    cursor:pointer; border:1px solid var(--line); background:var(--panel); padding:6px 11px; border-radius:8px;
+    box-shadow:0 2px 8px rgba(0,0,0,.1)}
+  #spReopen:hover{background:#f0eadd}
+  /* category fade when filtered out */
+  #doc mark.muted{opacity:.18}
+  mark.flash{animation:wmflash 1.3s ease}
+  @keyframes wmflash{0%,55%{background:#ffe06b}100%{}}
+  @media(max-width:760px){
+    #sidepanel{position:absolute; top:0; right:0; bottom:0; width:86%; max-width:360px; z-index:7;
+      box-shadow:-6px 0 24px rgba(0,0,0,.18)}
+  }
   #doc{max-width:820px; margin:0 auto; padding:34px 26px 80px; word-wrap:break-word}
   #doc h1,#doc h2,#doc h3,#doc h4,#doc h5,#doc h6{font-weight:600; line-height:1.25; margin:1.15em 0 .4em}
   #doc h1{font-size:30px} #doc h2{font-size:25px} #doc h3{font-size:21px}
@@ -78,21 +115,13 @@
   #doc img{max-width:100%}
 
   /* ---- highlights ---- */
-  mark{padding:.02em .08em; border-radius:3px; cursor:help; color:inherit;
+  mark{padding:.02em .08em; border-radius:3px; cursor:pointer; color:inherit;
     border-bottom:2px solid; background:transparent}
   mark.bs{background:rgba(124,77,255,.16); border-color:var(--bs)}
   mark.we{background:rgba(229,57,75,.16); border-color:var(--we)}
   mark.cb{background:rgba(245,166,35,.20); border-color:var(--cb)}
   mark.tla{background:rgba(45,156,219,.16); border-color:var(--tla)}
   mark.tb{background:rgba(39,174,96,.16); border-color:var(--tb)}
-
-  /* ---- tooltip ---- */
-  #tip{position:fixed; max-width:280px; background:#2b2620; color:#fbf8f1; padding:10px 13px;
-    border-radius:9px; font-size:14px; line-height:1.45; pointer-events:none; opacity:0;
-    transition:opacity .1s; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.28)}
-  #tip .tcat{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; margin-bottom:3px}
-  #tip .tfb{font-style:italic}
-  #tip .tsc{margin-top:5px; font-size:12px; opacity:.7}
 
   /* ---- intro / dropzone ---- */
   #intro{flex:1 1 auto; overflow:auto; display:flex; align-items:center; justify-content:center}
@@ -139,7 +168,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.11</span>
+      <span class="ver" id="verTop">v0.1.12</span>
     </div>
   </div>
 </div>
@@ -175,7 +204,18 @@
 </div>
 
 <!-- ===== DOCUMENT ===== -->
-<div id="docscroll" class="hidden"><div id="doc"></div></div>
+<div id="review" class="hidden">
+  <div id="docscroll"><div id="doc"></div></div>
+  <aside id="sidepanel">
+    <div class="sp-head">
+      <strong id="spCount">0 highlights</strong>
+      <button id="spCollapse" title="Hide panel">Hide ▸</button>
+    </div>
+    <div id="spFilters" class="sp-filters"></div>
+    <div id="spList" class="sp-list"></div>
+  </aside>
+  <button id="spReopen" class="hidden" title="Show issues">◂ Issues</button>
+</div>
 
 <!-- JSON fallback picker (file:// without server) -->
 <input type="file" id="jsonInput" class="hidden" accept=".json,application/json">
@@ -1035,8 +1075,7 @@
   ]
 }</script>
 
-<div id="tip"></div>
-<footer>WeaselOMeter <span id="verFoot">v0.1.11</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.12</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1044,8 +1083,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.11 ================= */
-const VERSION = "0.1.11";
+/* ================= WeaselOMeter v0.1.12 ================= */
+const VERSION = "0.1.12";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -1131,7 +1170,7 @@ $('#pasteBtn').addEventListener('click', ()=>{
   analyseAndShow(t);
 });
 $('#againBtn').addEventListener('click', ()=>{
-  $('#top').classList.add('hidden'); $('#docscroll').classList.add('hidden');
+  $('#top').classList.add('hidden'); $('#review').classList.add('hidden');
   $('#intro').classList.remove('hidden'); $('#introErr').textContent=''; $('#pasteArea').value='';
 });
 
@@ -1433,9 +1472,10 @@ function analyseAndShow(markdown){
   }
   const totals=highlightContainer(doc);
   renderScore(scoreFromTotals(totals));
+  buildPanel(doc);
   $('#intro').classList.add('hidden');
   $('#top').classList.remove('hidden');
-  $('#docscroll').classList.remove('hidden');
+  $('#review').classList.remove('hidden');
   $('#docscroll').scrollTop=0;
 }
 
@@ -1475,25 +1515,90 @@ function drawGauge(pct){
     '<div class="ver" style="margin-top:2px">'+Math.round(pct)+'% weasel</div>';
 }
 
-/* ================= TOOLTIP ================= */
-const tip=$('#tip');
+/* ================= SIDE PANEL (track-changes style) ================= */
 const catName=code=>(DICT&&DICT.categories[code]&&DICT.categories[code].name)||code;
 const catVar =code=>'var(--'+code+')';
-document.addEventListener('mouseover', e=>{
-  const m=e.target.closest('mark'); if(!m) return;
-  tip.innerHTML='<div class="tcat" style="color:'+catVar(m.dataset.cat)+'">'+catName(m.dataset.cat)+
-    '</div><div class="tfb">'+ (m.dataset.fb||'') +'</div><div class="tsc">weasel points: '+m.dataset.score+'</div>';
-  tip.style.opacity='1'; moveTip(e);
-});
-document.addEventListener('mousemove', e=>{ if(tip.style.opacity==='1') moveTip(e); });
-document.addEventListener('mouseout', e=>{ if(e.target.closest('mark')) tip.style.opacity='0'; });
-function moveTip(e){
-  const pad=14; let x=e.clientX+pad, y=e.clientY+pad;
-  const r=tip.getBoundingClientRect();
-  if(x+r.width>innerWidth-8) x=e.clientX-r.width-pad;
-  if(y+r.height>innerHeight-8) y=e.clientY-r.height-pad;
-  tip.style.left=x+'px'; tip.style.top=y+'px';
+let activeCats=null;   // Set of category codes currently shown (null = all)
+
+function escHtml(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* Build the panel from the marks already rendered in the document. */
+function buildPanel(doc){
+  const marks=[...doc.querySelectorAll('mark')];
+  marks.forEach((m,i)=>{ m.dataset.idx=i; });
+  // which categories are present, in dictionary order
+  const present=Object.keys(DICT.categories).filter(c=>marks.some(m=>m.dataset.cat===c));
+  activeCats=new Set(present);
+
+  // filters
+  $('#spFilters').innerHTML = present.map(c=>{
+    const n=marks.filter(m=>m.dataset.cat===c).length;
+    return `<span class="chip on" data-cat="${c}" style="background:${catVar(c)}"><b>${escHtml(DICT.categories[c].name)}</b> ${n}</span>`;
+  }).join('') || '<span class="ver">no highlights</span>';
+
+  // list
+  renderPanelList(marks);
 }
+
+function renderPanelList(marks){
+  marks = marks || [...$('#doc').querySelectorAll('mark')];
+  const items = marks.filter(m=>!activeCats || activeCats.has(m.dataset.cat));
+  $('#spCount').textContent = items.length + (items.length===1?' highlight':' highlights');
+  if(!items.length){ $('#spList').innerHTML='<div class="sp-empty">Nothing flagged in this view.</div>'; return; }
+  $('#spList').innerHTML = items.map(m=>{
+    const c=m.dataset.cat, i=m.dataset.idx;
+    return `<div class="sp-item" data-idx="${i}">
+      <div class="meta"><span class="dot" style="background:${catVar(c)}"></span>${escHtml(catName(c))}
+        <span class="sc">${m.dataset.score} pt</span></div>
+      <div class="ph">${escHtml(m.textContent)}</div>
+      <div class="fb">${escHtml(m.dataset.fb||'')}</div>
+    </div>`;
+  }).join('');
+}
+
+/* click a panel item -> scroll the doc to that highlight and flash it */
+$('#spList').addEventListener('click', e=>{
+  const it=e.target.closest('.sp-item'); if(!it) return;
+  const mark=$('#doc').querySelector('mark[data-idx="'+it.dataset.idx+'"]'); if(!mark) return;
+  setActive(it.dataset.idx);
+  mark.scrollIntoView({block:'center', behavior:'smooth'});
+  flash(mark);
+});
+
+/* click a highlight -> select + reveal its panel item */
+$('#doc').addEventListener('click', e=>{
+  const m=e.target.closest('mark'); if(!m) return;
+  if($('#sidepanel').classList.contains('collapsed')) togglePanel(true);
+  setActive(m.dataset.idx, true);
+  flash(m);
+});
+
+function setActive(idx, scrollPanel){
+  document.querySelectorAll('.sp-item.active').forEach(el=>el.classList.remove('active'));
+  const it=$('#spList').querySelector('.sp-item[data-idx="'+idx+'"]');
+  if(it){ it.classList.add('active'); if(scrollPanel) it.scrollIntoView({block:'center'}); }
+}
+function flash(mark){ mark.classList.remove('flash'); void mark.offsetWidth; mark.classList.add('flash'); }
+
+/* category filters: toggle list + fade the corresponding marks */
+$('#spFilters').addEventListener('click', e=>{
+  const chip=e.target.closest('.chip'); if(!chip||!chip.dataset.cat) return;
+  const c=chip.dataset.cat;
+  if(activeCats.has(c)) activeCats.delete(c); else activeCats.add(c);
+  chip.classList.toggle('on', activeCats.has(c));
+  $('#doc').querySelectorAll('mark.'+c).forEach(m=>m.classList.toggle('muted', !activeCats.has(c)));
+  renderPanelList();
+});
+
+/* collapse / reopen */
+function togglePanel(show){
+  const sp=$('#sidepanel'), re=$('#spReopen');
+  const collapsed = show===undefined ? !sp.classList.contains('collapsed') : !show;
+  sp.classList.toggle('collapsed', collapsed);
+  re.classList.toggle('hidden', !collapsed);
+}
+$('#spCollapse').addEventListener('click', ()=>togglePanel(false));
+$('#spReopen').addEventListener('click', ()=>togglePanel(true));
 
 /* ================= GO ================= */
 loadDict();
