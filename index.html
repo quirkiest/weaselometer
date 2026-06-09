@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.17 ===== */
+  /* ===== WeaselOMeter v0.1.18 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -172,6 +172,8 @@
     cursor:pointer; border:1px solid var(--line); background:var(--panel); width:34px; height:34px; border-radius:8px}
   .modal-card .credit{margin-top:1.2em; font-weight:600}
   #turnstileBox{margin-top:6px; min-height:0}
+  .hstat{font-size:13px; color:var(--muted)}
+  .hstat.ok{color:#176a39; font-weight:600}
 
   /* ---- toasts ---- */
   #toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:60;
@@ -210,7 +212,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.17</span>
+      <span class="ver" id="verTop">v0.1.18</span>
     </div>
   </div>
 </div>
@@ -223,7 +225,7 @@
        Everything is analysed <b>right here in your browser</b> — nothing is uploaded anywhere.</p>
 
     <div class="gate">
-      <label id="humanChkLabel"><input type="checkbox" id="humanChk"> I solemnly swear I am a human, and not a weasel (probably).</label>
+      <label id="humanChkLabel"><input type="checkbox" id="humanChk"> <span id="gshield" class="hidden">🛡️ </span>I solemnly swear I am a human, and not a weasel (probably). <span id="humanStatus" class="hstat"></span></label>
       <div id="turnstileBox" class="hidden"></div>
     </div>
 
@@ -348,7 +350,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.17</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.18</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -356,8 +358,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.17 ================= */
-const VERSION = "0.1.17";
+/* ================= WeaselOMeter v0.1.18 ================= */
+const VERSION = "0.1.18";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -906,18 +908,31 @@ async function initConfig(){
     else { console.warn('[WS] no Turnstile site key from /api/config — falling back to checkbox. (Redeploy so .env keys load.)'); useCheckbox(); }
   }catch(e){ console.warn('[WS] /api/config fetch failed — using checkbox.', e); useCheckbox(); }
 }
-function useCheckbox(){ $('#humanChkLabel').classList.remove('hidden'); $('#turnstileBox').classList.add('hidden'); }
+function setHStat(txt, ok){ const s=$('#humanStatus'); if(s){ s.textContent=txt||''; s.classList.toggle('ok', !!ok); } }
+/* checkbox fallback: user ticks it themselves */
+function useCheckbox(){
+  $('#humanChkLabel').classList.remove('hidden');
+  $('#turnstileBox').classList.add('hidden');
+  const chk=$('#humanChk'); chk.disabled=false; setHStat('');
+  $('#gshield').classList.add('hidden');
+}
+/* Turnstile runs interaction-only (invisible unless a challenge is needed). Our own
+   funny checkbox stays on screen and just ticks itself once verification passes. */
+let tsWidget=null;
 function setupTurnstile(siteKey){
-  $('#humanChkLabel').classList.add('hidden');
-  $('#turnstileBox').classList.remove('hidden');
+  const chk=$('#humanChk');
+  chk.disabled=true; chk.checked=false;            // driven by Turnstile, not the user
+  $('#gshield').classList.remove('hidden');
+  setHStat('(checking you\'re probably human…)');
+  $('#turnstileBox').classList.remove('hidden');   // empty unless a challenge appears
   const s=document.createElement('script');
   s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   s.async=true; s.defer=true;
   s.onload=()=>{ try{
-    window.turnstile.render('#turnstileBox',{ sitekey:siteKey,
+    tsWidget=window.turnstile.render('#turnstileBox',{ sitekey:siteKey, appearance:'interaction-only',
       callback:onTurnstile,
-      'expired-callback':()=>{ humanOK=false; refreshGate(); },
-      'error-callback':(c)=>{ console.warn('[WS] Turnstile error-callback', c, '(check the site key\'s allowed hostnames in Cloudflare)'); } });
+      'expired-callback':()=>{ humanOK=false; chk.checked=false; setHStat('(re-checking…)'); refreshGate(); if(window.turnstile&&tsWidget!=null) try{turnstile.reset(tsWidget);}catch(e){} },
+      'error-callback':(c)=>{ console.warn('[WS] Turnstile error-callback', c, '(check the site key\'s allowed hostnames in Cloudflare)'); setHStat('(couldn\'t auto-verify — tick the box)'); chk.disabled=false; $('#gshield').classList.add('hidden'); } });
   }catch(e){ console.warn('[WS] turnstile.render threw', e); useCheckbox(); } };
   s.onerror=()=>{ console.warn('[WS] Turnstile script failed to load (CDN blocked/offline) — using checkbox.'); useCheckbox(); };
   document.head.appendChild(s);
@@ -928,6 +943,9 @@ async function onTurnstile(token){
     const j=await r.json();
     humanOK=!!j.ok;
   }catch(e){ humanOK=false; }
+  const chk=$('#humanChk');
+  if(humanOK){ chk.checked=true; chk.disabled=true; setHStat('✓ verified (probably)', true); }
+  else { chk.checked=false; setHStat('(verification failed — try again)'); }
   refreshGate();
 }
 
