@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.16 ===== */
+  /* ===== WeaselOMeter v0.1.17 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -210,7 +210,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.16</span>
+      <span class="ver" id="verTop">v0.1.17</span>
     </div>
   </div>
 </div>
@@ -348,7 +348,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.16</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.17</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -356,8 +356,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.16 ================= */
-const VERSION = "0.1.16";
+/* ================= WeaselOMeter v0.1.17 ================= */
+const VERSION = "0.1.17";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -897,13 +897,14 @@ $('#spReopen').addEventListener('click', ()=>togglePanel(true));
 const SERVER = location.protocol==='http:'||location.protocol==='https:';
 let CFG=null;
 async function initConfig(){
-  if(!SERVER){ useCheckbox(); return; }           // file:// — no backend
+  if(!SERVER){ console.info('[WS] file:// — no backend, using checkbox'); useCheckbox(); return; }
   try{
     const r=await fetch('/api/config',{cache:'no-store'}); CFG=await r.json();
+    console.info('[WS] config', CFG);
     if(CFG.isEditor) $('#editLink').classList.remove('hidden');   // editor link for allowed users
     if(CFG.turnstileSiteKey) setupTurnstile(CFG.turnstileSiteKey);
-    else useCheckbox();
-  }catch(e){ useCheckbox(); }
+    else { console.warn('[WS] no Turnstile site key from /api/config — falling back to checkbox. (Redeploy so .env keys load.)'); useCheckbox(); }
+  }catch(e){ console.warn('[WS] /api/config fetch failed — using checkbox.', e); useCheckbox(); }
 }
 function useCheckbox(){ $('#humanChkLabel').classList.remove('hidden'); $('#turnstileBox').classList.add('hidden'); }
 function setupTurnstile(siteKey){
@@ -916,9 +917,9 @@ function setupTurnstile(siteKey){
     window.turnstile.render('#turnstileBox',{ sitekey:siteKey,
       callback:onTurnstile,
       'expired-callback':()=>{ humanOK=false; refreshGate(); },
-      'error-callback':()=>{ /* leave gate closed */ } });
-  }catch(e){ useCheckbox(); } };
-  s.onerror=useCheckbox;   // CDN blocked/offline — fall back
+      'error-callback':(c)=>{ console.warn('[WS] Turnstile error-callback', c, '(check the site key\'s allowed hostnames in Cloudflare)'); } });
+  }catch(e){ console.warn('[WS] turnstile.render threw', e); useCheckbox(); } };
+  s.onerror=()=>{ console.warn('[WS] Turnstile script failed to load (CDN blocked/offline) — using checkbox.'); useCheckbox(); };
   document.head.appendChild(s);
 }
 async function onTurnstile(token){
