@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter Editor v0.1.10 ===== */
+  /* ===== WeaselOMeter Editor v0.1.11 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -114,6 +114,7 @@
 
 <header>
   <div class="bar">
+    <a class="btn" href="index.html" title="Back to the WeaselOMeter" style="text-decoration:none">← WeaselOMeter</a>
     <h1>🦦 Word Bank Editor</h1>
     <button id="openBtn" class="primary">Open weaselwords.json…</button>
     <button id="saveBtn" disabled>Save</button>
@@ -218,7 +219,7 @@
 
 <script>
 /* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
-const EDITOR_VERSION="0.1.10";
+const EDITOR_VERSION="0.1.11";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 $('#edVer').textContent='Editor v'+EDITOR_VERSION;

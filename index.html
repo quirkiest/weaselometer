@@ -43,8 +43,9 @@
     -webkit-mask:url('WeaselChap.png') bottom/contain no-repeat; mask:url('WeaselChap.png') bottom/contain no-repeat}
 
   .verdict{flex:1 1 auto; min-width:0}
-  .verdict .score{font-size:18px; color:var(--muted)}
-  .verdict .score b{font-size:34px; color:var(--ink); font-family:inherit}
+  .verdict .score{font-size:32px; color:var(--muted)}
+  .verdict .score b{font-size:56px; color:var(--ink); font-family:inherit}
+  .verdict .score_denom{font-size:32px; color:var(--muted)}
   .verdict .label{font-size:26px; font-weight:600; margin:2px 0}
   .verdict .blurb{font-size:16px; color:var(--muted); font-style:italic}
 
@@ -201,13 +202,13 @@
   <div class="topwrap">
     <div class="brand">
       <h1>WeaselOMeter</h1>
-      <span class="tag">fun, but instructive</span>
+      <span class="tag">by Data-Driven Australia</span>
     </div>
 
     <div class="gauge" id="gaugeBox"></div>
 
     <div class="verdict">
-      <b id="wsScore">0</b> <span style="font-size:14px">/ 100</span>
+      <div class="score"><b id="wsScore">0</b> <span classs="score_denom">/ 100</span></div>
       <div class="label" id="wsLabel">—</div>
       <div class="blurb" id="wsBlurb"></div>
       <div class="cats" id="catChips"></div>
