@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter Editor v0.1.3 ===== */
+  /* ===== WeaselOMeter Editor v0.1.6 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -204,7 +204,7 @@
 
 <script>
 /* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
-const EDITOR_VERSION="0.1.3";
+const EDITOR_VERSION="0.1.6";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 $('#edVer').textContent='Editor v'+EDITOR_VERSION;
@@ -392,10 +392,10 @@ function renderEntries(){
         <button data-act="dup">Duplicate</button>
         <button class="warn" data-act="del">Delete</button>
       </div>
-      <label class="fld matchcell"><span>Match phrases (one per line) — last word auto-inflects (plural / -ed / -ing)</span>
+      <label class="fld matchcell"><span>Match phrases (one per line) — matches anywhere in a word by default (e.g. "collaborat" → collaborate, collaboration). Acronyms in ALL CAPS are skipped.</span>
         <textarea data-f="match">${esc((en.match||[]).join('\n'))}</textarea></label>
       <label class="fld" style="grid-column:4; flex-direction:row; align-items:center; gap:6px">
-        <input type="checkbox" data-f="exact" ${en.exact?'checked':''}><span title="Match phrases exactly — no plural/verb expansion">exact</span></label>
+        <input type="checkbox" data-f="exact" ${en.exact?'checked':''}><span title="Exact: match this whole word only — no substring, no plural/verb expansion">exact</span></label>
       <div class="rowflags" data-flags></div>`;
     list.appendChild(row);
   });
@@ -541,7 +541,7 @@ $('#tlasList').addEventListener('click',e=>{
   const i=+e.target.closest('.cardrow').dataset.i;
   if(confirm('Delete this override?')){ DATA.tlaOverrides.splice(i,1); renderTlas(); touch(); }
 });
-$('#addTla').onclick=()=>{ DATA.tlaOverrides.push({match:[],feedback:''}); renderTlas(); touch(); };
+$('#addTla').onclick=()=>{ DATA.tlaOverrides.unshift({match:[],feedback:''}); renderTlas(); touch(); $('#tlasList').scrollIntoView({block:'start'}); };
 
 /* ---- settings ---- */
 function renderSettings(){
@@ -617,17 +617,24 @@ function inflect(w){
   else { f.add(W+'ed'); f.add(W+'ing'); }
   return [...f];
 }
+/* CONTAINS by default (last word still inflected); exact = strict whole-word literal. */
 function phraseRegex(phrase, exact){
   const words=phrase.trim().split(/\s+/); const last=words[words.length-1];
+  if(exact){
+    const body=words.map(escapeRx).join('\\s+');
+    const pre=/^\w/.test(phrase)?'\\b':''; const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
+    return new RegExp(pre+body+post,'gi');
+  }
   let lastPart;
-  if(!exact && /^[a-z]+$/i.test(last) && last.length>=3)
+  if(/^[a-z]+$/i.test(last) && last.length>=3)
     lastPart='(?:'+inflect(last).sort((a,b)=>b.length-a.length).map(escapeRx).join('|')+')';
   else lastPart=escapeRx(last);
   const head=words.slice(0,-1).map(escapeRx).join('\\s+');
-  const body=(head?head+'\\s+':'')+lastPart;
-  const pre=/^\w/.test(phrase)?'\\b':''; const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
-  return new RegExp(pre+body+post,'gi');
+  return new RegExp((head?head+'\\s+':'')+lastPart,'gi');
 }
+function isAcronymSpan(text,s,e){ const seg=text.slice(s,e);
+  return /[A-Z]/.test(seg) && seg===seg.toUpperCase() && seg.replace(/[^A-Za-z]/g,'').length>=2; }
+function expandToWord(text,s,e){ while(s>0&&/\w/.test(text[s-1]))s--; while(e<text.length&&/\w/.test(text[e]))e++; return [s,e]; }
 function buildMatchers(){
   const M=[]; let order=0;
   for(const e of DATA.entries){
@@ -662,7 +669,12 @@ function findTLAs(text){
 function analyse(text){
   let cands=[];
   for(const mm of buildMatchers()){ let m; mm.rx.lastIndex=0;
-    while((m=mm.rx.exec(text))!==null){ cands.push({start:m.index,end:m.index+m[0].length,category:mm.category,score:mm.score,feedback:mm.feedback,len:m[0].length,order:mm.order}); if(m.index===mm.rx.lastIndex) mm.rx.lastIndex++; } }
+    while((m=mm.rx.exec(text))!==null){
+      let s=m.index,e=m.index+m[0].length; [s,e]=expandToWord(text,s,e);
+      if(m.index===mm.rx.lastIndex) mm.rx.lastIndex++;
+      if(isAcronymSpan(text,s,e)) continue;
+      cands.push({start:s,end:e,category:mm.category,score:mm.score,feedback:mm.feedback,len:e-s,order:mm.order});
+    } }
   cands=cands.concat(findTLAs(text));
   cands.sort((a,b)=>(b.score-a.score)||(b.len-a.len)||(a.order-b.order)||(a.start-b.start));
   const occ=[],acc=[];
@@ -670,7 +682,11 @@ function analyse(text){
   acc.sort((a,b)=>a.start-b.start);
   const words=(text.trim().match(/\S+/g)||[]).length||1;
   let pts=0; const byCat={}; for(const code of catCodes()) byCat[code]={points:0,count:0};
-  for(const a of acc){ pts+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score;byCat[a.category].count++;} }
+  const seenTLA=new Set();
+  for(const a of acc){
+    if(a.category==='tla'){ const key=text.slice(a.start,a.end).toUpperCase(); if(seenTLA.has(key)) continue; seenTLA.add(key); }
+    pts+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score;byCat[a.category].count++;}
+  }
   const sat=DATA.calibration.fillSaturationScore||50;
   const ws=Math.min(100,pts/words*100); const fill=Math.min(100,ws/sat*100);
   const tier=[...DATA.tiers].sort((a,b)=>a.max-b.max).find(t=>ws<=t.max)||{label:'(no tier)'};

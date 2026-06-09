@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.7 ===== */
+  /* ===== WeaselOMeter v0.1.9 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -139,7 +139,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.7</span>
+      <span class="ver" id="verTop">v0.1.9</span>
     </div>
   </div>
 </div>
@@ -1035,7 +1035,7 @@
 }</script>
 
 <div id="tip"></div>
-<footer>WeaselOMeter <span id="verFoot">v0.1.7</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.9</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1043,8 +1043,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.7 ================= */
-const VERSION = "0.1.7";
+/* ================= WeaselOMeter v0.1.9 ================= */
+const VERSION = "0.1.9";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -1259,22 +1259,40 @@ function inflect(w){
   else { f.add(W+'ed'); f.add(W+'ing'); }
   return [...f];
 }
-/* Build a regex for one phrase. Inflects the last word unless exact, the word
-   has non-letters, or it's too short (<3) to safely inflect. */
+/* Build a regex for one phrase.
+   Default = CONTAINS: the phrase matches anywhere (e.g. "collaborat" hits
+   collaborate / collaboration). The last word still gets inflected so y->ies
+   plurals (synergy->synergies) are caught. Matches are later expanded to the
+   whole word and acronym tokens are skipped (see collectMatches).
+   exact = strict whole-word literal: no substring, no inflection. */
 function phraseRegex(phrase, exact){
   const words=phrase.trim().split(/\s+/);
   const last=words[words.length-1];
-  let lastPart;
-  if(!exact && /^[a-z]+$/i.test(last) && last.length>=3){
-    lastPart='(?:'+inflect(last).sort((a,b)=>b.length-a.length).map(escapeRx).join('|')+')';
-  }else{
-    lastPart=escapeRx(last);
+  if(exact){
+    const body=words.map(escapeRx).join('\\s+');
+    const pre=/^\w/.test(phrase)?'\\b':'';
+    const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
+    return new RegExp(pre+body+post,'gi');
   }
+  let lastPart;
+  if(/^[a-z]+$/i.test(last) && last.length>=3)
+    lastPart='(?:'+inflect(last).sort((a,b)=>b.length-a.length).map(escapeRx).join('|')+')';
+  else lastPart=escapeRx(last);
   const head=words.slice(0,-1).map(escapeRx).join('\\s+');
-  const body=(head?head+'\\s+':'')+lastPart;
-  const pre=/^\w/.test(phrase)?'\\b':'';
-  const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
-  return new RegExp(pre+body+post,'gi');
+  return new RegExp((head?head+'\\s+':'')+lastPart,'gi');  // no boundaries = contains
+}
+/* True if a matched span is an all-caps acronym token (e.g. "AI", "RAID") that
+   should be left to the TLA detector rather than matched by a lower-case entry. */
+function isAcronymSpan(text, s, e){
+  const seg=text.slice(s,e);
+  return /[A-Z]/.test(seg) && seg===seg.toUpperCase() &&
+         (seg.replace(/[^A-Za-z]/g,'').length>=2);
+}
+/* Grow [s,e) outward over word characters so we highlight the whole word. */
+function expandToWord(text, s, e){
+  while(s>0 && /\w/.test(text[s-1])) s--;
+  while(e<text.length && /\w/.test(text[e])) e++;
+  return [s,e];
 }
 function buildMatchers(){
   const matchers=[]; let order=0;
@@ -1326,9 +1344,12 @@ function collectMatches(text, matchers){
   for(const mm of matchers){
     let m; mm.rx.lastIndex=0;
     while((m=mm.rx.exec(text))!==null){
-      cands.push({start:m.index,end:m.index+m[0].length,category:mm.category,score:mm.score,
-        feedback:mm.feedback,len:m[0].length,order:mm.order});
+      let s=m.index, e=m.index+m[0].length;
+      [s,e]=expandToWord(text,s,e);            // highlight the whole word
       if(m.index===mm.rx.lastIndex) mm.rx.lastIndex++;
+      if(isAcronymSpan(text,s,e)) continue;    // skip acronyms (e.g. "AI") — TLA detector handles those
+      cands.push({start:s,end:e,category:mm.category,score:mm.score,
+        feedback:mm.feedback,len:e-s,order:mm.order});
     }
   }
   cands=cands.concat(findTLAs(text));
@@ -1361,6 +1382,7 @@ function highlightContainer(root){
   const matchers=buildMatchers();
   const byCat={}; for(const c of Object.keys(DICT.categories)) byCat[c]={points:0,count:0};
   let points=0, words=0;
+  const seenTLA=new Set();   // acronyms score once per unique token, doc-wide
   const walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
   const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
   for(const node of nodes){
@@ -1369,8 +1391,16 @@ function highlightContainer(root){
     words += (text.trim().match(/\S+/g)||[]).length;
     const acc=collectMatches(text, matchers);
     if(!acc.length) continue;
-    for(const a of acc){ points+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score; byCat[a.category].count++;} }
-    node.parentNode.replaceChild(markFragment(text,acc), node);
+    for(const a of acc){
+      if(a.category==='tla'){
+        const key=text.slice(a.start,a.end).toUpperCase();
+        if(seenTLA.has(key)) continue;   // already counted this acronym — highlight but don't re-score
+        seenTLA.add(key);
+      }
+      points+=a.score;
+      if(byCat[a.category]){ byCat[a.category].points+=a.score; byCat[a.category].count++; }
+    }
+    node.parentNode.replaceChild(markFragment(text,acc), node);   // every occurrence still highlighted
   }
   return {points,byCat,words: words||1};
 }
