@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.21 ===== */
+  /* ===== WeaselOMeter v0.1.22 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -137,6 +137,8 @@
   .card p{color:var(--muted); margin:.4em 0}
   .gate{margin:18px 0; padding:14px 16px; background:#fff; border:1px dashed var(--line); border-radius:10px}
   .gate label{cursor:pointer; user-select:none}
+  #humanChk{width:24px; height:24px; vertical-align:-5px; margin-right:9px; accent-color:var(--cb); cursor:pointer}
+  #humanChk:disabled{cursor:default}
   #drop{margin-top:18px; border:2px dashed var(--line); border-radius:12px; padding:26px; text-align:center;
     color:var(--muted); transition:.15s}
   #drop.hot{border-color:var(--cb); background:#fff7e8; color:var(--ink)}
@@ -216,7 +218,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.21</span>
+      <span class="ver" id="verTop">v0.1.22</span>
     </div>
   </div>
 </div>
@@ -354,7 +356,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.21</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.22</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -362,8 +364,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.21 ================= */
-const VERSION = "0.1.21";
+/* ================= WeaselOMeter v0.1.22 ================= */
+const VERSION = "0.1.22";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
