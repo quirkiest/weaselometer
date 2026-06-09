@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter About v0.1.2 ===== */
+  /* ===== WeaselOMeter About v0.1.3 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -32,9 +32,10 @@
   p{margin:.6em 0}
   /* two-column term/definition grid: titles hang to the left of the text */
   .catgrid{display:grid; grid-template-columns:max-content 1fr; column-gap:26px; row-gap:14px; margin:1.1em 0; align-items:baseline}
-  .catgrid dt{font-weight:600; white-space:nowrap}
+  .catgrid dt{white-space:nowrap}
   .catgrid dd{margin:0}
-  .catgrid .dot{display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:8px; vertical-align:middle}
+  /* same coloured pill label as the main page */
+  .chip{display:inline-block; font-size:15px; font-weight:600; color:#fff; padding:4px 12px; border-radius:20px; white-space:nowrap}
   @media(max-width:620px){ .catgrid{grid-template-columns:1fr; row-gap:3px} .catgrid dd{margin:0 0 12px} }
   .credit{margin-top:1.4em; font-weight:600}
   .tos{margin:.6em 0}   /* same size/colour as the main body text */
@@ -57,20 +58,20 @@
   <p>Our clever little weasel works inside your browser to detect multiple kinds of guff:</p>
 
   <dl class="catgrid">
-    <dt><span class="dot" style="background:var(--bs)"></span>AI Slop</dt>
-    <dd>no, we are not a sophisticated “AI or not” detector, but we're here to spare you from the most
+    <dt><span class="chip" style="background:var(--bs)">AI Slop</span></dt>
+    <dd>No, we are not a sophisticated “AI or not” detector, but we're here to spare you from the most
       notorious phrases that our ubiquitous digital assistants seem to love to foist upon us.</dd>
-    <dt><span class="dot" style="background:var(--cb)"></span>Consultant Bingo</dt>
-    <dd>words created by the Best and Brightest of that superior class of people who are paid by the syllable.</dd>
-    <dt><span class="dot" style="background:var(--we)"></span>Weaselwords</dt>
-    <dd>the linguistic Nothing Burger: words and phrases that seem to say something but neatly avoid
+    <dt><span class="chip" style="background:var(--cb)">Consultant Bingo</span></dt>
+    <dd>Words created by the Best and Brightest of that superior class of people who are paid by the syllable.</dd>
+    <dt><span class="chip" style="background:var(--we)">Weaselwords</span></dt>
+    <dd>The linguistic Nothing Burger: words and phrases that seem to say something but neatly avoid
       being measurable or taking responsibility for anything except wasting our collective time.</dd>
-    <dt><span class="dot" style="background:var(--tla)"></span>(E)TLAs</dt>
-    <dd>acronyms are helpful, but not if your writing looks like your Caps Lock key is high on cocaine.</dd>
+    <dt><span class="chip" style="background:var(--tla)">(E)TLAs</span></dt>
+    <dd>Acronyms are helpful, but not if your writing looks like your Caps Lock key is high on cocaine.</dd>
   </dl>
 
-  <p class="credit">The WeaselOMeter is a community service brought to you by the data geeks at
-    Data-Driven Australia.</p>
+  <p class="credit">◆ The WeaselOMeter is a community service brought to you by the data geeks at
+    Data-Driven Australia. ◆</p>
 
   <h3>Terms of Service</h3>
   <p class="tos">The WeaselOMeter (WS) is an outcomes-driven framework brought to you for a
@@ -79,6 +80,6 @@
     stakeholders.</p>
 </main>
 
-<footer>WeaselOMeter · About v0.1.2 · DATA-DRIVEN AUSTRALIA</footer>
+<footer>WeaselOMeter · About v0.1.3 · DATA-DRIVEN AUSTRALIA</footer>
 </body>
 </html>
