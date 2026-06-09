@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter Editor v0.1.8 ===== */
+  /* ===== WeaselOMeter Editor v0.1.9 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -205,7 +205,7 @@
 
 <script>
 /* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
-const EDITOR_VERSION="0.1.8";
+const EDITOR_VERSION="0.1.9";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 $('#edVer').textContent='Editor v'+EDITOR_VERSION;
@@ -229,9 +229,11 @@ async function loadFromServer(){
     loadData(JSON.stringify(j.data), 'weaselwords.json (server)');
   }catch(e){ $('#fileName').textContent='server load failed'; alert('Couldn\'t load from server: '+e.message); }
 }
-async function saveToServer(){
+async function saveToServer(silent){
   if(!DATA) return;
-  const v=validate(); if(v.errors.length){
+  const v=validate();
+  if(v.errors.length){
+    if(silent){ const p=$('#dirtyPill'); p.textContent='not saved — '+v.errors.length+' error(s)'; p.classList.add('dirty'); return; }
     if(!confirm(v.errors.length+' validation error(s) present. Save anyway?')) return;
   }
   const data=JSON.parse(serialize());
@@ -239,16 +241,43 @@ async function saveToServer(){
     const r=await fetch('/api/weaselwords',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({etag:serverEtag,data})});
     const j=await r.json().catch(()=>({}));
-    if(r.status===403){ alert('Not authorised to edit (your account isn\'t on the editor list).'); return; }
+    if(r.status===403){ const p=$('#dirtyPill'); p.textContent='not authorised to edit'; p.classList.add('dirty'); if(!silent) alert('Not authorised to edit (your account isn\'t on the editor list).'); return; }
     if(r.status===409){
-      if(confirm('Someone else changed the word bank since you loaded it.\nReload the server copy now? (your unsaved edits will be lost)')) loadFromServer();
+      const p=$('#dirtyPill'); p.textContent='conflict — reload needed'; p.classList.add('dirty');
+      if(!silent && confirm('Someone else changed the word bank since you loaded it.\nReload the server copy now? (your unsaved edits will be lost)')) loadFromServer();
       return;
     }
-    if(!r.ok){ alert('Save failed: '+(j.error||('HTTP '+r.status))+(j.details?'\n- '+j.details.join('\n- '):'')); return; }
+    if(!r.ok){ if(!silent) alert('Save failed: '+(j.error||('HTTP '+r.status))+(j.details?'\n- '+j.details.join('\n- '):'')); return; }
     serverEtag=j.etag; setDirty(false);
     $('#fileName').textContent='weaselwords.json (server)';
-    const p=$('#dirtyPill'); p.textContent='saved · '+(j.savedBy||'')+''; p.classList.remove('dirty');
-  }catch(e){ alert('Save failed: '+e.message); }
+    const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const p=$('#dirtyPill'); p.textContent=(silent?'autosaved ':'saved ')+t; p.classList.remove('dirty');
+  }catch(e){ if(!silent) alert('Save failed: '+e.message); }
+}
+
+/* write to the local file via the File System Access handle (file:// mode) */
+async function saveToFile(silent){
+  if(!DATA || !fileHandle) return;
+  const v=validate();
+  if(v.errors.length && silent){ const p=$('#dirtyPill'); p.textContent='not saved — '+v.errors.length+' error(s)'; p.classList.add('dirty'); return; }
+  try{
+    const w=await fileHandle.createWritable(); await w.write(serialize()); await w.close();
+    setDirty(false);
+    const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const p=$('#dirtyPill'); p.textContent=(silent?'autosaved ':'saved ')+t; p.classList.remove('dirty');
+  }catch(e){ if(!silent) alert('Save failed: '+e.message); }
+}
+
+/* ---------- autosave (debounced) ---------- */
+let autosaveTimer=null;
+function scheduleAutosave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(autosaveNow, 1200);   // ~1.2s after the last edit
+}
+function autosaveNow(){
+  if(!DATA) return;
+  if(SERVER) saveToServer(true);
+  else if(fileHandle) saveToFile(true);   // only once a file has been opened/picked
 }
 
 $('#openBtn').onclick=async()=>{
@@ -326,7 +355,7 @@ function setDirty(b){
   p.textContent=b?'unsaved changes':'saved';
   p.classList.toggle('dirty',b);
 }
-function touch(){ setDirty(true); runValidation(); }
+function touch(){ setDirty(true); runValidation(); scheduleAutosave(); }
 window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; }});
 
 /* ---------- tabs ---------- */

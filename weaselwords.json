@@ -1,5 +1,5 @@
 {
-  "version": "0.1.7",
+  "version": "0.2.3",
   "meta": {
     "name": "WeaselOMeter word bank",
     "notes": "Edit freely. 'match' entries are matched case-insensitively as whole words/phrases. Use score 1 (mild) to 5 (egregious). TLAs are mostly auto-detected by regex; entries here override the generic feedback for specific acronyms."
@@ -89,7 +89,8 @@
       "match": [
         "enable",
         "enablement",
-        "enabler"
+        "enabler",
+        "enabled"
       ],
       "feedback": "Let's \"enable\" so we don't actually have to do anything MEASURABLE"
     },
@@ -198,7 +199,8 @@
         "unlock the potential",
         "unlock the power",
         "unleash the potential",
-        "unlock new possibilities"
+        "unlock new possibilities",
+        "Unlocking"
       ],
       "feedback": "Where is this padlock and who has the key?"
     },
@@ -766,6 +768,370 @@
         "observability"
       ],
       "feedback": "If it ends in '-bility', double the budget."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "a testament to the power",
+        "stands as a",
+        "stand as a"
+      ],
+      "feedback": "Everything *stands as a testament* to something with these things."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "maintains an active social media presence",
+        "active social media presence"
+      ],
+      "feedback": "The single most robotic sentence the internet has ever produced."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "furthermore",
+        "moreover",
+        "additionally"
+      ],
+      "feedback": "The connective tissue of an essay with nothing to connect."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "notably",
+        "notable"
+      ],
+      "feedback": "If it were notable you wouldn't need to *announce* it."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "multifaceted"
+      ],
+      "feedback": "A fancy way of saying 'has more than one side', like a coin."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "comprehensive"
+      ],
+      "feedback": "Covers everything, commits to nothing."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "robust"
+      ],
+      "feedback": "Software-speak for 'we hope it works'."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "empower",
+        "empowering",
+        "empowerment"
+      ],
+      "feedback": "Nobody was *de*-powered, but okay."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "underscore",
+        "underscores",
+        "underscoring"
+      ],
+      "feedback": "To underline, but make it a TED talk."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "pivotal"
+      ],
+      "feedback": "Everything is *pivotal* now. The pivot has no axis."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "pave the way",
+        "paves the way",
+        "paving the way",
+        "paved the way"
+      ],
+      "feedback": "Lay down some asphalt and call it strategy."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "harness the power",
+        "harnessing the power",
+        "harness the potential"
+      ],
+      "feedback": "Saddle up the synergy, partner."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "at the forefront",
+        "forefront of"
+      ],
+      "feedback": "Front of what? The queue for buzzwords."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "push the boundaries",
+        "pushing the boundaries",
+        "push the envelope"
+      ],
+      "feedback": "The boundaries are fine. Leave them alone."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "plays a crucial role",
+        "play a crucial role",
+        "playing a crucial role",
+        "plays a vital role",
+        "plays a key role",
+        "plays a pivotal role"
+      ],
+      "feedback": "Award-winning performance by a noun in a supporting role."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "a beacon of",
+        "beacon of hope"
+      ],
+      "feedback": "Lighthouse metaphor incoming, brace yourself."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "enhance",
+        "enhances",
+        "enhancing",
+        "enhanced"
+      ],
+      "feedback": "'Improve' put on a blazer."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "vibrant"
+      ],
+      "feedback": "Reach for 'vibrant' when you have nothing specific to say."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "nestled in the heart",
+        "nestled in",
+        "in the heart of"
+      ],
+      "feedback": "Travel-brochure autopilot engaged."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "boasts a",
+        "boasts"
+      ],
+      "feedback": "Inanimate things can't boast. Stop giving them an ego."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "crucial",
+        "crucially"
+      ],
+      "feedback": "The fifty-cent word would be 'key'. The free word would be nothing."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "vital"
+      ],
+      "feedback": "Vital signs: this sentence has none."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "rich history",
+        "rich cultural",
+        "rich tradition"
+      ],
+      "feedback": "Marinated in heritage, served with cliché."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "not just about"
+      ],
+      "feedback": "Brace for the 'it's a whole lifestyle' reveal."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "bandwidth",
+        "offline"
+      ],
+      "feedback": "What are you, a WiFi unit?"
+    },
+    {
+      "category": "bs",
+      "feedback": "Love a good harness... kinky!",
+      "match": [
+        "harness"
+      ],
+      "score": 4
+    },
+    {
+      "category": "cb",
+      "feedback": "hmmmm....",
+      "match": [
+        "partnership",
+        "collaborat",
+        "embed"
+      ],
+      "score": 2
+    },
+    {
+      "category": "cb",
+      "feedback": "Is it a suit?  Didn't think so...",
+      "match": [
+        "tailor"
+      ],
+      "score": 5
+    },
+    {
+      "category": "bs",
+      "feedback": "Oh, well done!  You're not seriously trying unless you have a \"competitive advantage\" or three.",
+      "match": [
+        "competitive advantage"
+      ],
+      "score": 4
+    },
+    {
+      "category": "we",
+      "feedback": "awww a weasly rainbow... how lovely!",
+      "match": [
+        "full spectrum"
+      ],
+      "score": 4
+    },
+    {
+      "category": "we",
+      "feedback": "Semaphore?  Smoke? Shadow puppets?",
+      "match": [
+        "signal"
+      ],
+      "score": 4
+    },
+    {
+      "category": "bs",
+      "feedback": "This works us towards a migraine.",
+      "match": [
+        "working towards"
+      ],
+      "score": 4
+    },
+    {
+      "category": "we",
+      "feedback": "Or instead you could actually DO something.",
+      "match": [
+        "facilitat",
+        "promot"
+      ],
+      "score": 4
+    },
+    {
+      "category": "bs",
+      "feedback": "Some much better than fake-world stuff",
+      "match": [
+        "real-world"
+      ],
+      "score": 2
+    },
+    {
+      "category": "cb",
+      "feedback": "ooo you so faaancy!",
+      "match": [
+        "transformational"
+      ],
+      "score": 2
+    },
+    {
+      "category": "we",
+      "feedback": "C'mon... \"uplift\"...really?",
+      "match": [
+        "uplift"
+      ],
+      "score": 4
+    },
+    {
+      "category": "we",
+      "feedback": "Not a verb, dude",
+      "match": [
+        "to uplift",
+        "will uplift"
+      ],
+      "score": 5
+    },
+    {
+      "category": "cb",
+      "feedback": "Driving drives me crazy.",
+      "match": [
+        "drive",
+        "drives",
+        "driving",
+        "drove"
+      ],
+      "score": 2,
+      "exact": true
+    },
+    {
+      "category": "cb",
+      "feedback": "Gotta love a Vision, right?",
+      "match": [
+        "vision",
+        "visions"
+      ],
+      "score": 3,
+      "exact": true
+    },
+    {
+      "category": "cb",
+      "feedback": "Well planky-plank to you, too!",
+      "match": [
+        "plank"
+      ],
+      "score": 5
     }
   ],
   "tlaOverrides": [
@@ -846,6 +1212,132 @@
         "PTO"
       ],
       "feedback": "Out Of Office, including the part of the brain that writes plainly."
+    },
+    {
+      "match": [
+        "SME",
+        "SMEs"
+      ],
+      "feedback": "Subject Matter Expert: a person who knows things, now 67% more important.",
+      "score": 3
+    },
+    {
+      "match": [
+        "BAU"
+      ],
+      "feedback": "Business As Usual. So... usual.",
+      "score": 3
+    },
+    {
+      "match": [
+        "POC"
+      ],
+      "feedback": "Proof of Concept. Or Point of Contact. Nobody's sure, including the author.",
+      "score": 2
+    },
+    {
+      "match": [
+        "QBR"
+      ],
+      "feedback": "Quarterly Business Review: a meeting wearing a tuxedo.",
+      "score": 3
+    },
+    {
+      "match": [
+        "GTM"
+      ],
+      "feedback": "Go To Market. Or, you know, *sell it*.",
+      "score": 3
+    },
+    {
+      "match": [
+        "CTA"
+      ],
+      "feedback": "Call To Action. It's the button. It's just the button.",
+      "score": 2
+    },
+    {
+      "match": [
+        "USP"
+      ],
+      "feedback": "Unique Selling Proposition — unique like everyone else's.",
+      "score": 2
+    },
+    {
+      "match": [
+        "FTE",
+        "FTEs"
+      ],
+      "feedback": "Full-Time Equivalent: a human being, expressed as a decimal.",
+      "score": 2
+    },
+    {
+      "match": [
+        "WIP"
+      ],
+      "feedback": "Work In Progress, i.e. *not done*.",
+      "score": 2
+    },
+    {
+      "match": [
+        "ICYMI"
+      ],
+      "feedback": "In Case You Missed It. You didn't. They sent it twice.",
+      "score": 2
+    },
+    {
+      "match": [
+        "SOW"
+      ],
+      "feedback": "Statement Of Work: the work, but harder to read.",
+      "score": 2
+    },
+    {
+      "match": [
+        "RFP",
+        "RFI",
+        "RFQ"
+      ],
+      "feedback": "Request For Pretending-we'll-read-all-of-these.",
+      "score": 2
+    },
+    {
+      "match": [
+        "TAM",
+        "SAM",
+        "SOM"
+      ],
+      "feedback": "Total / Serviceable / Obtainable market — three numbers, all guessed.",
+      "score": 2
+    },
+    {
+      "match": [
+        "NPS"
+      ],
+      "feedback": "Net Promoter Score: one number to rule the all-hands.",
+      "score": 2
+    },
+    {
+      "match": [
+        "L&D"
+      ],
+      "feedback": "Learning & Development: training, but on a slide.",
+      "score": 2
+    },
+    {
+      "match": [
+        "SOP",
+        "SOPs"
+      ],
+      "feedback": "Standard Operating Procedure — rules, abbreviated to sound military.",
+      "score": 2
+    },
+    {
+      "feedback": "ai ai ai ai ai ai like you veeerry much!",
+      "match": [
+        "AI"
+      ],
+      "score": 1
     }
   ]
 }

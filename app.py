@@ -13,12 +13,13 @@ checks the caller's CF-Access email is in EDITOR_EMAILS / ADMIN_EMAILS.
 When Cloudflare Access is not configured (local dev), writes are allowed.
 """
 import os, json, hashlib, shutil, datetime, tempfile, logging
+import requests
 
 from flask import Flask, request, jsonify, send_from_directory, Response, abort
 
 from cf_auth import verify_cf_jwt, is_enabled as cf_enabled
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.1"
 
 log = logging.getLogger("weaselometer")
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +30,9 @@ DATA_FILE = os.path.join(DATA_DIR, "weaselwords.json")
 BACKUPS   = os.path.join(DATA_DIR, "backups")
 SEED_FILE = os.path.join(BASE_DIR, "weaselwords.json")  # git-tracked seed
 
-# front-end assets that may be served from the project root
-ASSETS = {"index.html", "editor.html", "WeaselChap.png"}
+# front-end assets that may be served from the project root.
+# NOTE: editor.html is intentionally excluded — it's gated by the /editor route.
+ASSETS = {"index.html", "WeaselChap.png"}
 
 
 # ── data helpers ────────────────────────────────────────────────────────────
@@ -161,6 +163,17 @@ def create_app():
     @app.route("/editor")
     @app.route("/editor.html")
     def editor():
+        ok, _ = current_editor()
+        if not ok:
+            return Response(
+                "<!doctype html><meta charset=utf-8><title>Editors only</title>"
+                "<div style=\"font-family:Garamond,'Times New Roman',serif;max-width:480px;"
+                "margin:14vh auto;text-align:center;color:#2b2620\">"
+                "<h1 style='font-size:30px'>\U0001F9A6 Editors only</h1>"
+                "<p style='font-size:18px;color:#7a7064'>Your account isn't on the word-bank "
+                "editor list. Ask an admin to add your email to <code>EDITOR_EMAILS</code>.</p>"
+                "<p><a href='/' style='color:#2d9cdb'>&larr; Back to the WeaselOMeter</a></p></div>",
+                status=403, mimetype="text/html")
         return send_from_directory(BASE_DIR, "editor.html")
 
     @app.route("/weaselwords.json")
@@ -215,6 +228,40 @@ def create_app():
         return jsonify({"ok": True, "version": APP_VERSION,
                         "cf_access": cf_enabled(),
                         "entries": len(json.loads(read_raw()).get("entries", []))})
+
+    @app.route("/api/config")
+    def config():
+        """Front-end bootstrap: app version, whether the caller may edit, and the
+        Turnstile site key (public) so the page can render the widget."""
+        ok, email = current_editor()
+        return jsonify({
+            "version": APP_VERSION,
+            "cfEnabled": cf_enabled(),
+            "isEditor": bool(ok),
+            "editorEmail": email if ok else None,
+            "turnstileSiteKey": os.environ.get("TURNSTILE_SITE_KEY", "").strip(),
+        })
+
+    @app.route("/api/verify-turnstile", methods=["POST"])
+    def verify_turnstile():
+        """Verify a Cloudflare Turnstile token server-side with the secret key.
+        If no secret is configured, we don't block (ok:true, skipped)."""
+        secret = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
+        if not secret:
+            return jsonify({"ok": True, "skipped": True})
+        token = (request.get_json(silent=True) or {}).get("token")
+        if not token:
+            return jsonify({"ok": False, "error": "missing token"}), 400
+        try:
+            r = requests.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data={"secret": secret, "response": token,
+                      "remoteip": request.headers.get("CF-Connecting-IP", "")},
+                timeout=5)
+            j = r.json()
+            return jsonify({"ok": bool(j.get("success")), "codes": j.get("error-codes", [])})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 502
 
     @app.route("/<path:fname>")
     def asset(fname):
