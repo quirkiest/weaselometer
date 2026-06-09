@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.18 ===== */
+  /* ===== WeaselOMeter v0.1.19 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -102,7 +102,8 @@
     #sidepanel{position:absolute; top:0; right:0; bottom:0; width:86%; max-width:360px; z-index:7;
       box-shadow:-6px 0 24px rgba(0,0,0,.18)}
   }
-  #doc{max-width:820px; margin:0 auto; padding:34px 26px 80px; word-wrap:break-word}
+  /* doc width scales with the screen (capped for readability); side gutters grow too */
+  #doc{max-width:clamp(800px, 88vw, 1600px); margin:0 auto; padding:34px clamp(22px,4vw,64px) 80px; word-wrap:break-word}
   #doc h1,#doc h2,#doc h3,#doc h4,#doc h5,#doc h6{font-weight:600; line-height:1.25; margin:1.15em 0 .4em}
   #doc h1{font-size:30px} #doc h2{font-size:25px} #doc h3{font-size:21px}
   #doc h4{font-size:18px} #doc h5,#doc h6{font-size:16px; color:var(--muted)}
@@ -212,7 +213,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.18</span>
+      <span class="ver" id="verTop">v0.1.19</span>
     </div>
   </div>
 </div>
@@ -350,7 +351,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.18</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.19</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -358,8 +359,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.18 ================= */
-const VERSION = "0.1.18";
+/* ================= WeaselOMeter v0.1.19 ================= */
+const VERSION = "0.1.19";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
