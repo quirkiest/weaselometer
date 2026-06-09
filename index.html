@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.15 ===== */
+  /* ===== WeaselOMeter v0.1.16 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -188,7 +188,7 @@
 <!-- ===== TOP-RIGHT NAV ===== -->
 <div id="topnav">
   <a id="editLink" href="/editor" class="hidden" title="Edit the word bank">Edit word bank</a>
-  <button id="aboutBtn">About</button>
+  <a href="about.html" title="About the WeaselOMeter">About</a>
 </div>
 
 <!-- ===== TOP SCORE PANEL ===== -->
@@ -210,7 +210,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.15</span>
+      <span class="ver" id="verTop">v0.1.16</span>
     </div>
   </div>
 </div>
@@ -346,37 +346,9 @@
   "tlaOverrides": []
 }</script>
 
-<!-- ===== ABOUT MODAL ===== -->
-<div id="aboutModal" class="modal hidden">
-  <div class="modal-card">
-    <button class="modal-close" id="aboutClose" aria-label="Close">×</button>
-    <h2>About</h2>
-    <p>The WeaselOMeter is here to fight back against the rising tide of AI slop, consultant-driven
-       content and the general dross in which prose is increasingly drenched.</p>
-    <p>Our clever little weasel works inside your browser to detect multiple kinds of guff:</p>
-    <div class="catline"><b style="color:var(--bs)">AI Slop</b> — no, we are not a sophisticated
-      “AI or not” detector, but we're here to spare you from the most notorious phrases that our
-      ubiquitous digital assistants seem to love to foist upon us.</div>
-    <div class="catline"><b style="color:var(--cb)">Consultant Bingo</b> — words created by the Best
-      and Brightest of that superior class of people who are paid by the syllable.</div>
-    <div class="catline"><b style="color:var(--we)">Weaselwords</b> — the linguistic Nothing Burger:
-      words and phrases that seem to say something but neatly avoid being measurable or taking
-      responsibility for anything except wasting our collective time.</div>
-    <div class="catline"><b style="color:var(--tla)">(E)TLAs</b> — acronyms are helpful, but not if
-      your writing looks like your Caps Lock key is high on cocaine.</div>
-    <p class="credit">The WeaselOMeter is a community service brought to you by the data geeks at
-      Data-Driven Australia.</p>
-    <h3>Terms of Service</h3>
-    <p class="tos">The WeaselOMeter (WS) is an outcomes-driven framework brought to you for a
-      zero-investment value-add which is built-in so that you can uplift and double-click on
-      harnessing the competitive advantage of the full spectrum of working towards real-world
-      solutions for your stakeholders.</p>
-  </div>
-</div>
-
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.15</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.16</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -384,8 +356,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.15 ================= */
-const VERSION = "0.1.15";
+/* ================= WeaselOMeter v0.1.16 ================= */
+const VERSION = "0.1.16";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -920,12 +892,6 @@ function togglePanel(show){
 }
 $('#spCollapse').addEventListener('click', ()=>togglePanel(false));
 $('#spReopen').addEventListener('click', ()=>togglePanel(true));
-
-/* ================= ABOUT MODAL ================= */
-$('#aboutBtn').addEventListener('click', ()=> $('#aboutModal').classList.remove('hidden'));
-$('#aboutClose').addEventListener('click', ()=> $('#aboutModal').classList.add('hidden'));
-$('#aboutModal').addEventListener('click', e=>{ if(e.target.id==='aboutModal') $('#aboutModal').classList.add('hidden'); });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('#aboutModal').classList.add('hidden'); });
 
 /* ================= CONFIG / TURNSTILE / EDITOR LINK ================= */
 const SERVER = location.protocol==='http:'||location.protocol==='https:';

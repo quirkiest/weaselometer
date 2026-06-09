@@ -19,7 +19,7 @@ from flask import Flask, request, jsonify, send_from_directory, Response, abort
 
 from cf_auth import verify_cf_jwt, is_enabled as cf_enabled
 
-APP_VERSION = "0.3.0"
+APP_VERSION = "0.3.1"
 
 log = logging.getLogger("weaselometer")
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +33,7 @@ LOCK_TTL  = 150   # seconds — a lock with no heartbeat for this long is consid
 
 # front-end assets that may be served from the project root.
 # NOTE: editor.html is intentionally excluded — it's gated by the /editor route.
-ASSETS = {"index.html", "WeaselChap.png"}
+ASSETS = {"index.html", "about.html", "WeaselChap.png"}
 
 # Structure-only fallback used when no data file exists yet (categories/tiers/
 # calibration but no entries). Keeps the app valid from a cold start.
@@ -205,6 +205,11 @@ def create_app():
     @app.route("/")
     def home():
         return send_from_directory(BASE_DIR, "index.html")
+
+    @app.route("/about")
+    @app.route("/about.html")
+    def about():
+        return send_from_directory(BASE_DIR, "about.html")
 
     @app.route("/editor")
     @app.route("/editor.html")
