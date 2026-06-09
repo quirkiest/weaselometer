@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.9 ===== */
+  /* ===== WeaselOMeter v0.1.11 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -139,7 +139,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.9</span>
+      <span class="ver" id="verTop">v0.1.11</span>
     </div>
   </div>
 </div>
@@ -184,7 +184,7 @@
      When the folder is served over http(s), external weaselwords.json is fetched
      instead so your edits stay live. Keep this block in sync with that file. -->
 <script id="embeddedDict" type="application/json">{
-  "version": "0.1.4",
+  "version": "0.1.7",
   "meta": {
     "name": "WeaselOMeter word bank",
     "notes": "Edit freely. 'match' entries are matched case-insensitively as whole words/phrases. Use score 1 (mild) to 5 (egregious). TLAs are mostly auto-detected by regex; entries here override the generic feedback for specific acronyms."
@@ -228,24 +228,24 @@
       "blurb": "Not a whisker out of place. Suspiciously honest."
     },
     {
-      "max": 8,
+      "max": 15,
       "label": "Faint Whiff",
       "blurb": "Mostly fine. One or two paws on the scale."
     },
     {
-      "max": 18,
+      "max": 35,
       "label": "Bit Whiffy",
       "blurb": "Some genuine weaselage detected. Tidy it up."
     },
     {
-      "max": 32,
+      "max": 55,
       "label": "Notably Niffy",
       "blurb": "The buzzwords are circling. Reader is wincing."
     },
     {
-      "max": 50,
+      "max": 75,
       "label": "Heavy Weaselage",
-      "blurb": "This document needs a shower and a plain-English coach."
+      "blurb": "This needs a shower and a plain-English coach."
     },
     {
       "max": 100,
@@ -254,9 +254,10 @@
     }
   ],
   "calibration": {
-    "note": "WS score = weasel points per 100 words, capped at 100. points = sum of matched entry scores. fillPercent maps score 0..50 -> 0..100% (clamped) so the gauge saturates at 'Heavy Weaselage'.",
-    "perWords": 100,
-    "fillSaturationScore": 50
+    "note": "WS = 100*(1-exp(-curveK * pointsPer100Words)), with effectiveWords = max(words, minWords). fillSaturationScore = WS at which the gauge is 100% full.",
+    "curveK": 0.32,
+    "minWords": 200,
+    "fillSaturationScore": 100
   },
   "entries": [
     {
@@ -1035,7 +1036,7 @@
 }</script>
 
 <div id="tip"></div>
-<footer>WeaselOMeter <span id="verFoot">v0.1.9</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.11</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1043,8 +1044,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.9 ================= */
-const VERSION = "0.1.9";
+/* ================= WeaselOMeter v0.1.11 ================= */
+const VERSION = "0.1.11";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -1406,8 +1407,13 @@ function highlightContainer(root){
 }
 
 function scoreFromTotals(t){
-  const sat=(DICT.calibration&&DICT.calibration.fillSaturationScore)||50;
-  const wsScore=Math.min(100, t.points/t.words*100);
+  const cal=DICT.calibration||{};
+  const k=cal.curveK||0.32;               // steepness of the saturating curve
+  const minW=cal.minWords||100;           // short-doc floor — score against at least this many words
+  const sat=cal.fillSaturationScore||100; // WS that fills the gauge 100%
+  const eff=Math.max(t.words, minW);
+  const d100=t.points/eff*100;            // weasel points per 100 words (length-floored)
+  const wsScore=Math.min(100, 100*(1-Math.exp(-k*d100)));
   const fillPct=Math.min(100, (wsScore/sat)*100);
   const tier=(DICT.tiers||[]).find(x=>wsScore<=x.max)||{label:'OMG TOTAL WEASEL',blurb:''};
   return {wsScore,fillPct,tier,byCat:t.byCat,points:t.points,words:t.words};

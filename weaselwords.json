@@ -1,5 +1,5 @@
 {
-  "version": "0.1.4",
+  "version": "0.1.7",
   "meta": {
     "name": "WeaselOMeter word bank",
     "notes": "Edit freely. 'match' entries are matched case-insensitively as whole words/phrases. Use score 1 (mild) to 5 (egregious). TLAs are mostly auto-detected by regex; entries here override the generic feedback for specific acronyms."
@@ -43,24 +43,24 @@
       "blurb": "Not a whisker out of place. Suspiciously honest."
     },
     {
-      "max": 8,
+      "max": 15,
       "label": "Faint Whiff",
       "blurb": "Mostly fine. One or two paws on the scale."
     },
     {
-      "max": 18,
+      "max": 35,
       "label": "Bit Whiffy",
       "blurb": "Some genuine weaselage detected. Tidy it up."
     },
     {
-      "max": 32,
+      "max": 55,
       "label": "Notably Niffy",
       "blurb": "The buzzwords are circling. Reader is wincing."
     },
     {
-      "max": 50,
+      "max": 75,
       "label": "Heavy Weaselage",
-      "blurb": "This document needs a shower and a plain-English coach."
+      "blurb": "This needs a shower and a plain-English coach."
     },
     {
       "max": 100,
@@ -69,9 +69,10 @@
     }
   ],
   "calibration": {
-    "note": "WS score = weasel points per 100 words, capped at 100. points = sum of matched entry scores. fillPercent maps score 0..50 -> 0..100% (clamped) so the gauge saturates at 'Heavy Weaselage'.",
-    "perWords": 100,
-    "fillSaturationScore": 50
+    "note": "WS = 100*(1-exp(-curveK * pointsPer100Words)), with effectiveWords = max(words, minWords). fillSaturationScore = WS at which the gauge is 100% full.",
+    "curveK": 0.32,
+    "minWords": 200,
+    "fillSaturationScore": 100
   },
   "entries": [
     {

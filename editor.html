@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter Editor v0.1.6 ===== */
+  /* ===== WeaselOMeter Editor v0.1.8 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -171,8 +171,9 @@
       <div class="cardrow">
         <label class="fld"><span>Dictionary version</span>
           <span style="display:flex;gap:6px"><input type="text" id="setVersion" style="width:110px"><button id="bumpVer" title="bump patch">+patch</button></span></label>
-        <label class="fld"><span>Words per score window</span><input type="number" id="setPerWords" style="width:110px"></label>
-        <label class="fld"><span>Fill saturation score</span><input type="number" id="setSat" style="width:110px"></label>
+        <label class="fld"><span>Curve k (steepness)</span><input type="number" step="0.01" id="setCurveK" style="width:110px"></label>
+        <label class="fld"><span>Min words (short-doc floor)</span><input type="number" id="setMinWords" style="width:120px"></label>
+        <label class="fld"><span>Gauge-full at WS</span><input type="number" id="setSat" style="width:110px"></label>
       </div>
       <div class="cardrow" style="flex-direction:column; align-items:stretch">
         <label class="fld"><span>Word bank name (meta.name)</span><input type="text" id="setName"></label>
@@ -204,7 +205,7 @@
 
 <script>
 /* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
-const EDITOR_VERSION="0.1.6";
+const EDITOR_VERSION="0.1.8";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 $('#edVer').textContent='Editor v'+EDITOR_VERSION;
@@ -547,14 +548,16 @@ $('#addTla').onclick=()=>{ DATA.tlaOverrides.unshift({match:[],feedback:''}); re
 function renderSettings(){
   if(!DATA) return;
   $('#setVersion').value=DATA.version||'';
-  $('#setPerWords').value=DATA.calibration.perWords??'';
+  $('#setCurveK').value=DATA.calibration.curveK??'';
+  $('#setMinWords').value=DATA.calibration.minWords??'';
   $('#setSat').value=DATA.calibration.fillSaturationScore??'';
   $('#setName').value=DATA.meta.name||'';
   $('#setNotes').value=DATA.meta.notes||'';
   $('#setCalNote').value=DATA.calibration.note||'';
 }
 $('#setVersion').addEventListener('input',e=>{DATA.version=e.target.value;touch();});
-$('#setPerWords').addEventListener('input',e=>{DATA.calibration.perWords=+e.target.value;touch();});
+$('#setCurveK').addEventListener('input',e=>{DATA.calibration.curveK=+e.target.value;touch();});
+$('#setMinWords').addEventListener('input',e=>{DATA.calibration.minWords=+e.target.value;touch();});
 $('#setSat').addEventListener('input',e=>{DATA.calibration.fillSaturationScore=+e.target.value;touch();});
 $('#setName').addEventListener('input',e=>{DATA.meta.name=e.target.value;touch();});
 $('#setNotes').addEventListener('input',e=>{DATA.meta.notes=e.target.value;touch();});
@@ -687,8 +690,10 @@ function analyse(text){
     if(a.category==='tla'){ const key=text.slice(a.start,a.end).toUpperCase(); if(seenTLA.has(key)) continue; seenTLA.add(key); }
     pts+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score;byCat[a.category].count++;}
   }
-  const sat=DATA.calibration.fillSaturationScore||50;
-  const ws=Math.min(100,pts/words*100); const fill=Math.min(100,ws/sat*100);
+  const cal=DATA.calibration||{};
+  const k=cal.curveK||0.32, minW=cal.minWords||100, sat=cal.fillSaturationScore||100;
+  const eff=Math.max(words,minW); const d100=pts/eff*100;
+  const ws=Math.min(100,100*(1-Math.exp(-k*d100))); const fill=Math.min(100,ws/sat*100);
   const tier=[...DATA.tiers].sort((a,b)=>a.max-b.max).find(t=>ws<=t.max)||{label:'(no tier)'};
   return {acc,words,pts,ws,fill,tier,byCat,text};
 }
