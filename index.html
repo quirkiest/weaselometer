@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.25 ===== */
+  /* ===== WeaselOMeter v0.1.26 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -148,8 +148,8 @@
   .card p{color:var(--muted); margin:.4em 0}
   .gate{margin:18px 0; padding:14px 16px; background:#fff; border:1px dashed var(--line); border-radius:10px}
   .gate label{cursor:pointer; user-select:none}
-  #humanChk{width:24px; height:24px; vertical-align:-5px; margin-right:9px; accent-color:var(--cb); cursor:pointer}
-  #humanChk:disabled{cursor:default}
+  .oath{font-size:19px; font-style:italic; color:var(--ink); margin:.2em 0 14px}
+  #humanBtn.big{font-size:18px; padding:12px 24px; border-radius:10px}
   /* human attestation modal */
   .hmodal{position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(43,38,32,.5)}
@@ -158,7 +158,7 @@
     border-radius:16px; padding:32px 34px 28px; box-shadow:0 18px 50px rgba(0,0,0,.3)}
   .hmodal-card h2{margin:.25em 0 .15em; font-size:26px}
   .hmodal-card .note{color:var(--muted); margin:.3em auto 16px; max-width:42ch}
-  .hmodal-card .gate{display:inline-block; text-align:left; margin:0}
+  .hmodal-card .gate{margin:0; padding:0; background:none; border:none; text-align:center}
   #drop{margin-top:18px; border:2px dashed var(--line); border-radius:12px; padding:26px; text-align:center;
     color:var(--muted); transition:.15s}
   #drop.hot{border-color:var(--cb); background:#fff7e8; color:var(--ink)}
@@ -238,7 +238,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.25</span>
+      <span class="ver" id="verTop">v0.1.26</span>
     </div>
   </div>
 </div>
@@ -248,11 +248,13 @@
   <div class="hmodal-card">
     <div style="font-size:46px; line-height:1">🦦</div>
     <h2>Before we begin…</h2>
-    <p class="note">A quick check that you're (probably) human. Nothing is uploaded anywhere —
+    <p class="note">A quick check that you're human. Nothing is uploaded anywhere —
        everything is analysed right here in your browser.</p>
     <div class="gate">
-      <label id="humanChkLabel"><input type="checkbox" id="humanChk"> <span id="gshield" class="hidden">🛡️ </span>I solemnly swear I am a human, and not a weasel (probably). <span id="humanStatus" class="hstat"></span></label>
+      <p class="oath">“I solemnly swear I am a human, and not a weasel (probably).”</p>
       <div id="turnstileBox" class="hidden"></div>
+      <button id="humanBtn" class="primary big">🛡️ Not a Bot… or a Weasel</button>
+      <div id="humanStatus" class="hstat"></div>
     </div>
   </div>
 </div>
@@ -385,7 +387,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.25</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.26</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -393,8 +395,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.25 ================= */
-const VERSION = "0.1.25";
+/* ================= WeaselOMeter v0.1.26 ================= */
+const VERSION = "0.1.26";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -463,7 +465,7 @@ function onDictReady(){
 }
 
 /* ---------- human gate ---------- */
-let humanOK=false;   // set by the checkbox or by a verified Turnstile token
+let humanOK=false;   // set when the user presses the button (and Turnstile, if on, verifies)
 function refreshGate(){
   const ok = humanOK && !!DICT;
   $('#drop').classList.toggle('disabled', !ok);
@@ -471,7 +473,18 @@ function refreshGate(){
   $('#pasteBtn').disabled  = !ok;
   if(humanOK) $('#humanModal').classList.add('hidden');   // verified — drop the blocking overlay
 }
-$('#humanChk').addEventListener('change', ()=>{ humanOK=$('#humanChk').checked; refreshGate(); });
+function proceedHuman(){ humanOK=true; refreshGate(); }
+/* Button is the gate. If Turnstile is configured, run it on click; otherwise accept. */
+$('#humanBtn').addEventListener('click', ()=>{
+  if(humanOK) return;
+  if(tsWidget!=null && window.turnstile){
+    setHStat('(checking you\'re probably human…)');
+    $('#humanBtn').disabled=true;
+    try{ window.turnstile.execute(tsWidget); }catch(e){ proceedHuman(); }
+  } else {
+    proceedHuman();
+  }
+});
 
 /* ---------- legend ---------- */
 function buildLegend(){
@@ -970,44 +983,32 @@ async function initConfig(){
   }catch(e){ console.warn('[WS] /api/config fetch failed — using checkbox.', e); useCheckbox(); }
 }
 function setHStat(txt, ok){ const s=$('#humanStatus'); if(s){ s.textContent=txt||''; s.classList.toggle('ok', !!ok); } }
-/* checkbox fallback: user ticks it themselves */
-function useCheckbox(){
-  $('#humanChkLabel').classList.remove('hidden');
-  $('#turnstileBox').classList.add('hidden');
-  const chk=$('#humanChk'); chk.disabled=false; setHStat('');
-  $('#gshield').classList.add('hidden');
-}
-/* Turnstile runs interaction-only (invisible unless a challenge is needed). Our own
-   funny checkbox stays on screen and just ticks itself once verification passes. */
+/* no Turnstile configured — the button alone is the gate */
+function useCheckbox(){ tsWidget=null; $('#turnstileBox').classList.add('hidden'); setHStat(''); }
+/* Turnstile in execute mode: invisible widget that runs when the button is pressed. */
 let tsWidget=null;
 function setupTurnstile(siteKey){
-  const chk=$('#humanChk');
-  chk.disabled=true; chk.checked=false;            // driven by Turnstile, not the user
-  $('#gshield').classList.remove('hidden');
-  setHStat('(checking you\'re probably human…)');
   $('#turnstileBox').classList.remove('hidden');   // empty unless a challenge appears
   const s=document.createElement('script');
   s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
   s.async=true; s.defer=true;
   s.onload=()=>{ try{
-    tsWidget=window.turnstile.render('#turnstileBox',{ sitekey:siteKey, appearance:'interaction-only',
+    tsWidget=window.turnstile.render('#turnstileBox',{ sitekey:siteKey, appearance:'execute',
       callback:onTurnstile,
-      'expired-callback':()=>{ humanOK=false; chk.checked=false; setHStat('(re-checking…)'); refreshGate(); if(window.turnstile&&tsWidget!=null) try{turnstile.reset(tsWidget);}catch(e){} },
-      'error-callback':(c)=>{ console.warn('[WS] Turnstile error-callback', c, '(check the site key\'s allowed hostnames in Cloudflare)'); setHStat('(couldn\'t auto-verify — tick the box)'); chk.disabled=false; $('#gshield').classList.add('hidden'); } });
+      'expired-callback':()=>{ humanOK=false; setHStat('(verification expired — press again)'); $('#humanBtn').disabled=false; },
+      'error-callback':(c)=>{ console.warn('[WS] Turnstile error-callback', c, '(check the site key\'s allowed hostnames in Cloudflare)'); setHStat('(couldn\'t verify — press to try again)'); $('#humanBtn').disabled=false; } });
   }catch(e){ console.warn('[WS] turnstile.render threw', e); useCheckbox(); } };
-  s.onerror=()=>{ console.warn('[WS] Turnstile script failed to load (CDN blocked/offline) — using checkbox.'); useCheckbox(); };
+  s.onerror=()=>{ console.warn('[WS] Turnstile script failed to load (CDN blocked/offline).'); useCheckbox(); };
   document.head.appendChild(s);
 }
 async function onTurnstile(token){
+  let ok=false;
   try{
     const r=await fetch('/api/verify-turnstile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
-    const j=await r.json();
-    humanOK=!!j.ok;
-  }catch(e){ humanOK=false; }
-  const chk=$('#humanChk');
-  if(humanOK){ chk.checked=true; chk.disabled=true; setHStat('✓ verified (probably)', true); }
-  else { chk.checked=false; setHStat('(verification failed — try again)'); }
-  refreshGate();
+    ok=!!(await r.json()).ok;
+  }catch(e){ ok=false; }
+  if(ok){ setHStat('✓ verified (probably)', true); proceedHuman(); }
+  else { setHStat('(verification failed — press to try again)'); $('#humanBtn').disabled=false; }
 }
 
 /* ================= GO ================= */
