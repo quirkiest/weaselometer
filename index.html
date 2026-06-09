@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.23 ===== */
+  /* ===== WeaselOMeter v0.1.24 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -142,6 +142,15 @@
   .gate label{cursor:pointer; user-select:none}
   #humanChk{width:24px; height:24px; vertical-align:-5px; margin-right:9px; accent-color:var(--cb); cursor:pointer}
   #humanChk:disabled{cursor:default}
+  /* human attestation modal */
+  .hmodal{position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(43,38,32,.5)}
+  .hmodal.hidden{display:none !important}
+  .hmodal-card{max-width:540px; width:100%; text-align:center; background:var(--bg); border:1px solid var(--line);
+    border-radius:16px; padding:32px 34px 28px; box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  .hmodal-card h2{margin:.25em 0 .15em; font-size:26px}
+  .hmodal-card .note{color:var(--muted); margin:.3em auto 16px; max-width:42ch}
+  .hmodal-card .gate{display:inline-block; text-align:left; margin:0}
   #drop{margin-top:18px; border:2px dashed var(--line); border-radius:12px; padding:26px; text-align:center;
     color:var(--muted); transition:.15s}
   #drop.hot{border-color:var(--cb); background:#fff7e8; color:var(--ink)}
@@ -221,7 +230,21 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.23</span>
+      <span class="ver" id="verTop">v0.1.24</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HUMAN ATTESTATION (blocks the page until passed) ===== -->
+<div id="humanModal" class="hmodal">
+  <div class="hmodal-card">
+    <div style="font-size:46px; line-height:1">🦦</div>
+    <h2>Before we begin…</h2>
+    <p class="note">A quick check that you're (probably) human. Nothing is uploaded anywhere —
+       everything is analysed right here in your browser.</p>
+    <div class="gate">
+      <label id="humanChkLabel"><input type="checkbox" id="humanChk"> <span id="gshield" class="hidden">🛡️ </span>I solemnly swear I am a human, and not a weasel (probably). <span id="humanStatus" class="hstat"></span></label>
+      <div id="turnstileBox" class="hidden"></div>
     </div>
   </div>
 </div>
@@ -232,11 +255,6 @@
     <h2>The WeaselOMeter</h2>
     <p>Upload something and we'll hunt down the slippery, the slopful and the consultant-brained.
        Everything is analysed <b>right here in your browser</b> — nothing is uploaded anywhere.</p>
-
-    <div class="gate">
-      <label id="humanChkLabel"><input type="checkbox" id="humanChk"> <span id="gshield" class="hidden">🛡️ </span>I solemnly swear I am a human, and not a weasel (probably). <span id="humanStatus" class="hstat"></span></label>
-      <div id="turnstileBox" class="hidden"></div>
-    </div>
 
     <div id="drop" class="disabled">
       <div style="font-size:20px">📄 Drop a file here, or
@@ -359,7 +377,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.23</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.24</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -367,8 +385,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.23 ================= */
-const VERSION = "0.1.23";
+/* ================= WeaselOMeter v0.1.24 ================= */
+const VERSION = "0.1.24";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
@@ -443,6 +461,7 @@ function refreshGate(){
   $('#drop').classList.toggle('disabled', !ok);
   $('#pasteArea').disabled = !ok;
   $('#pasteBtn').disabled  = !ok;
+  if(humanOK) $('#humanModal').classList.add('hidden');   // verified — drop the blocking overlay
 }
 $('#humanChk').addEventListener('change', ()=>{ humanOK=$('#humanChk').checked; refreshGate(); });
 
