@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter Editor v0.1.9 ===== */
+  /* ===== WeaselOMeter Editor v0.1.10 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -96,6 +96,18 @@
   footer{flex:0 0 auto; text-align:center; padding:6px; font-size:12px; color:var(--muted);
     border-top:1px solid var(--line); background:var(--panel)}
   .empty{color:var(--muted); font-style:italic; padding:30px; text-align:center}
+  /* lock banner */
+  #lockBanner{flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:9px 18px;
+    background:#fff4d6; border-bottom:1px solid var(--cb); color:#7a5500; font-size:14px}
+  #lockBanner.ro{background:#fdeaec; border-color:var(--warn); color:#9a1c28}
+  #lockBanner button{margin-left:auto; font-family:inherit; font-size:13px; cursor:pointer;
+    border:1px solid currentColor; background:#fff; padding:4px 10px; border-radius:7px}
+  /* toasts */
+  #toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:60;
+    display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none}
+  .toast{background:#2b2620; color:#fbf8f1; padding:10px 16px; border-radius:10px; font-size:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,.28); opacity:0; transition:opacity .2s; max-width:90vw}
+  .toast.show{opacity:1} .toast.warn{background:#9a1c28} .toast.ok{background:#176a39}
 </style>
 </head>
 <body>
@@ -121,6 +133,7 @@
     <div class="tab" data-tab="test">Test</div>
   </nav>
 </header>
+<div id="lockBanner" class="hidden"></div>
 
 <main>
   <div class="wrap">
@@ -205,7 +218,7 @@
 
 <script>
 /* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
-const EDITOR_VERSION="0.1.9";
+const EDITOR_VERSION="0.1.10";
 const $=s=>document.querySelector(s);
 const $$=s=>Array.from(document.querySelectorAll(s));
 $('#edVer').textContent='Editor v'+EDITOR_VERSION;
@@ -215,9 +228,55 @@ let DATA=null;          // working copy of the dictionary
 let fileHandle=null;    // FS Access API handle (live save, file:// mode)
 let dirty=false;
 let serverEtag=null;    // last etag seen from the server (optimistic lock)
+let readOnly=false;     // true when someone else holds the write-lock
+let pendingSync=false;  // a save failed (offline) and is queued
 const hasFSA = !!window.showOpenFilePicker;
 // Server mode when loaded over http(s): read/write via the Flask API.
 const SERVER = location.protocol==='http:'||location.protocol==='https:';
+const DRAFT_KEY='weaselometer_editor_draft_v1';
+
+/* ---------- toast ---------- */
+function toast(msg, kind, ms){
+  const c=$('#toast'); if(!c) return;
+  const t=document.createElement('div'); t.className='toast'+(kind?' '+kind:''); t.textContent=msg;
+  c.appendChild(t); requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),250); }, ms||3500);
+}
+function saveDraft(){ if(SERVER){ try{ localStorage.setItem(DRAFT_KEY, serialize()); }catch(e){} } }
+
+/* ---------- write-lock ---------- */
+function showLockBanner(){
+  const b=$('#lockBanner');
+  if(readOnly){
+    b.className='ro';
+    b.innerHTML='🔒 Locked by <b style="margin:0 4px">'+esc(lockBy||'another editor')+
+      '</b> — read-only. <button id="takeOver">Take over</button>';
+    $('#takeOver').onclick=()=>acquireLock(true);
+    b.classList.remove('hidden');
+  }else{
+    b.className=''; b.classList.add('hidden');
+  }
+}
+let lockBy=null, hbTimer=null;
+async function acquireLock(force){
+  if(!SERVER) return;
+  try{
+    const r=await fetch('/api/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({force:!!force})});
+    if(r.status===403){ readOnly=true; lockBy='(not an editor)'; showLockBanner(); return; }
+    const j=await r.json().catch(()=>({}));
+    if(r.status===409){ readOnly=true; lockBy=j.by; showLockBanner(); if(!force) toast('Locked by '+(j.by||'another editor')+' — opened read-only.','warn',5000); return; }
+    if(r.ok){ readOnly=false; lockBy=null; showLockBanner(); startHeartbeat(); if(force) toast('Lock taken over — you can edit now.','ok'); }
+  }catch(e){ /* offline — leave as is */ }
+}
+function startHeartbeat(){
+  clearInterval(hbTimer);
+  hbTimer=setInterval(()=>{ if(!readOnly && navigator.onLine) fetch('/api/lock',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>{}); }, 60000);
+}
+function releaseLock(){
+  if(!SERVER || readOnly) return;
+  try{ fetch('/api/lock',{method:'DELETE',keepalive:true}); }catch(e){}
+}
+window.addEventListener('pagehide', releaseLock);
 
 /* ---------- open / save ---------- */
 async function loadFromServer(){
@@ -227,10 +286,17 @@ async function loadFromServer(){
     const j=await r.json();
     serverEtag=j.etag;
     loadData(JSON.stringify(j.data), 'weaselwords.json (server)');
-  }catch(e){ $('#fileName').textContent='server load failed'; alert('Couldn\'t load from server: '+e.message); }
+    acquireLock(false);
+  }catch(e){
+    // offline — fall back to the local draft if we have one
+    let draft=null; try{ draft=localStorage.getItem(DRAFT_KEY); }catch(_){}
+    if(draft){ loadData(draft,'local draft (offline)'); pendingSync=true; toast('Offline — loaded your local draft. Will sync when reconnected.','warn',5000); }
+    else { $('#fileName').textContent='server unavailable'; toast('Couldn\'t reach the server and no local draft found.','warn',5000); }
+  }
 }
 async function saveToServer(silent){
   if(!DATA) return;
+  if(readOnly){ const p=$('#dirtyPill'); p.textContent='read-only (locked)'; p.classList.add('dirty'); if(!silent) toast('Read-only — '+(lockBy?lockBy+' holds the lock.':'someone else holds the lock.'),'warn'); return; }
   const v=validate();
   if(v.errors.length){
     if(silent){ const p=$('#dirtyPill'); p.textContent='not saved — '+v.errors.length+' error(s)'; p.classList.add('dirty'); return; }
@@ -241,19 +307,31 @@ async function saveToServer(silent){
     const r=await fetch('/api/weaselwords',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({etag:serverEtag,data})});
     const j=await r.json().catch(()=>({}));
-    if(r.status===403){ const p=$('#dirtyPill'); p.textContent='not authorised to edit'; p.classList.add('dirty'); if(!silent) alert('Not authorised to edit (your account isn\'t on the editor list).'); return; }
+    if(r.status===403){ const p=$('#dirtyPill'); p.textContent='not authorised to edit'; p.classList.add('dirty'); if(!silent) toast('Not authorised to edit.','warn'); return; }
+    if(r.status===423){ readOnly=true; lockBy=j.by; showLockBanner(); const p=$('#dirtyPill'); p.textContent='locked by '+(j.by||'?'); p.classList.add('dirty'); if(!silent) toast('Locked by '+(j.by||'another editor')+' — your changes weren\'t saved.','warn',5000); return; }
     if(r.status===409){
       const p=$('#dirtyPill'); p.textContent='conflict — reload needed'; p.classList.add('dirty');
       if(!silent && confirm('Someone else changed the word bank since you loaded it.\nReload the server copy now? (your unsaved edits will be lost)')) loadFromServer();
       return;
     }
-    if(!r.ok){ if(!silent) alert('Save failed: '+(j.error||('HTTP '+r.status))+(j.details?'\n- '+j.details.join('\n- '):'')); return; }
-    serverEtag=j.etag; setDirty(false);
+    if(!r.ok){ if(!silent) toast('Save failed: '+(j.error||('HTTP '+r.status)),'warn'); return; }
+    serverEtag=j.etag; setDirty(false); pendingSync=false;
+    try{ localStorage.removeItem(DRAFT_KEY); }catch(e){}
     $('#fileName').textContent='weaselwords.json (server)';
     const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     const p=$('#dirtyPill'); p.textContent=(silent?'autosaved ':'saved ')+t; p.classList.remove('dirty');
-  }catch(e){ if(!silent) alert('Save failed: '+e.message); }
+  }catch(e){
+    // network failure — queue for reconnect, keep the draft
+    pendingSync=true; saveDraft();
+    const p=$('#dirtyPill'); p.textContent='offline — will sync'; p.classList.add('dirty');
+    if(!silent) toast('Server connection lost — changes saved locally and will sync when reconnected.','warn',5000);
+  }
 }
+
+/* ---------- reconnect / offline-queue ---------- */
+window.addEventListener('online', ()=>{ toast('Back online.','ok',2500); if(SERVER){ acquireLock(false); if(pendingSync) saveToServer(true); } });
+window.addEventListener('offline', ()=>toast('You are offline. Edits will sync when reconnected.','warn',4000));
+setInterval(()=>{ if(SERVER && pendingSync && navigator.onLine && !readOnly) saveToServer(true); }, 60000);
 
 /* write to the local file via the File System Access handle (file:// mode) */
 async function saveToFile(silent){
@@ -355,7 +433,7 @@ function setDirty(b){
   p.textContent=b?'unsaved changes':'saved';
   p.classList.toggle('dirty',b);
 }
-function touch(){ setDirty(true); runValidation(); scheduleAutosave(); }
+function touch(){ setDirty(true); runValidation(); saveDraft(); scheduleAutosave(); }
 window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; }});
 
 /* ---------- tabs ---------- */
@@ -767,5 +845,6 @@ if(SERVER){
   loadFromServer();
 }
 </script>
+<div id="toast"></div>
 </body>
 </html>

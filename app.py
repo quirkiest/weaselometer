@@ -12,43 +12,64 @@ Auth: Cloudflare Access sits in front (same pattern as ARMR). Reads are open
 checks the caller's CF-Access email is in EDITOR_EMAILS / ADMIN_EMAILS.
 When Cloudflare Access is not configured (local dev), writes are allowed.
 """
-import os, json, hashlib, shutil, datetime, tempfile, logging
+import os, json, hashlib, shutil, datetime, tempfile, logging, time
 import requests
 
 from flask import Flask, request, jsonify, send_from_directory, Response, abort
 
 from cf_auth import verify_cf_jwt, is_enabled as cf_enabled
 
-APP_VERSION = "0.2.1"
+APP_VERSION = "0.3.0"
 
 log = logging.getLogger("weaselometer")
 logging.basicConfig(level=logging.INFO)
 
 BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR  = os.path.join(BASE_DIR, "data")
-DATA_FILE = os.path.join(DATA_DIR, "weaselwords.json")
+DATA_FILE = os.path.join(DATA_DIR, "weaselwords.json")   # SINGLE source of truth
 BACKUPS   = os.path.join(DATA_DIR, "backups")
-SEED_FILE = os.path.join(BASE_DIR, "weaselwords.json")  # git-tracked seed
+LOCK_FILE = os.path.join(DATA_DIR, "weaselwords.lock")
+LOCK_TTL  = 150   # seconds — a lock with no heartbeat for this long is considered stale
 
 # front-end assets that may be served from the project root.
 # NOTE: editor.html is intentionally excluded — it's gated by the /editor route.
 ASSETS = {"index.html", "WeaselChap.png"}
 
+# Structure-only fallback used when no data file exists yet (categories/tiers/
+# calibration but no entries). Keeps the app valid from a cold start.
+SKELETON = {
+    "version": "0.0.0",
+    "meta": {"name": "WeaselOMeter word bank", "notes": "Auto-created skeleton — add entries via the editor."},
+    "categories": {
+        "bs":  {"name": "BotSlop",          "color": "#7c4dff", "defaultScore": 4, "blurb": "Classic AI-generated filler."},
+        "we":  {"name": "Weasely",          "color": "#e5394b", "defaultScore": 3, "blurb": "Slippery, imprecise or just plain tricksy."},
+        "cb":  {"name": "Consultant Bingo", "color": "#f5a623", "defaultScore": 3, "blurb": "Pure management-consulting fluff."},
+        "tla": {"name": "(E)TLAs",          "color": "#2d9cdb", "defaultScore": 1, "blurb": "Acronyms. (Extended) Three-Letter Abbreviations."},
+        "tb":  {"name": "Technobabble",     "color": "#27ae60", "defaultScore": 3, "blurb": "A five-dollar word where a fifty-cent word will do."},
+    },
+    "tiers": [
+        {"max": 0,   "label": "Squeaky Clean",     "blurb": "Not a whisker out of place."},
+        {"max": 15,  "label": "Faint Whiff",       "blurb": "Mostly fine."},
+        {"max": 35,  "label": "Bit Whiffy",        "blurb": "Some genuine weaselage."},
+        {"max": 55,  "label": "Notably Niffy",     "blurb": "The buzzwords are circling."},
+        {"max": 75,  "label": "Heavy Weaselage",   "blurb": "Needs a plain-English coach."},
+        {"max": 100, "label": "OMG TOTAL WEASEL",  "blurb": "Pure, distilled gobbledygook."},
+    ],
+    "calibration": {"note": "WS = 100*(1-exp(-curveK * pointsPer100Words)), effectiveWords = max(words, minWords).",
+                    "curveK": 0.32, "minWords": 200, "fillSaturationScore": 100},
+    "entries": [],
+    "tlaOverrides": [],
+}
+
 
 # ── data helpers ────────────────────────────────────────────────────────────
 def ensure_data():
-    """Create data/ and seed weaselwords.json from the repo copy on first run."""
+    """Create data/ and, only if the single source file is missing, write the skeleton."""
     os.makedirs(BACKUPS, exist_ok=True)
     if not os.path.exists(DATA_FILE):
-        src = SEED_FILE if os.path.exists(SEED_FILE) else None
-        if src:
-            shutil.copy2(src, DATA_FILE)
-            log.info("Seeded %s from %s", DATA_FILE, src)
-        else:
-            with open(DATA_FILE, "w", encoding="utf-8") as fh:
-                json.dump({"version": "0.0.0", "categories": {}, "tiers": [],
-                           "entries": [], "tlaOverrides": [], "calibration": {},
-                           "meta": {}}, fh, indent=2)
+        with open(DATA_FILE, "w", encoding="utf-8") as fh:
+            json.dump(SKELETON, fh, ensure_ascii=False, indent=2)
+        log.info("No data file found — wrote skeleton to %s", DATA_FILE)
 
 
 def read_raw() -> str:
@@ -88,6 +109,31 @@ def backup(by: str):
             os.remove(os.path.join(BACKUPS, old))
         except OSError:
             pass
+
+
+# ── write-lock (pessimistic, one editor at a time) ──────────────────────────
+def read_lock():
+    """Return the active lock dict {email, ts}, or None if absent/stale."""
+    try:
+        with open(LOCK_FILE, "r", encoding="utf-8") as fh:
+            l = json.load(fh)
+    except Exception:
+        return None
+    if time.time() - float(l.get("ts", 0)) > LOCK_TTL:
+        return None
+    return l
+
+
+def write_lock(email):
+    with open(LOCK_FILE, "w", encoding="utf-8") as fh:
+        json.dump({"email": email, "ts": time.time()}, fh)
+
+
+def clear_lock():
+    try:
+        os.remove(LOCK_FILE)
+    except OSError:
+        pass
 
 
 # ── schema validation (server-side guard) ───────────────────────────────────
@@ -190,12 +236,47 @@ def create_app():
         return jsonify({"data": json.loads(raw), "etag": etag_of(raw),
                         "version": APP_VERSION, "cf": cf_enabled()})
 
+    # ── write-lock endpoints ─────────────────────────────────────────────
+    @app.route("/api/lock", methods=["GET"])
+    def lock_get():
+        ok, email = current_editor()
+        l = read_lock()
+        return jsonify({"locked": bool(l), "by": (l or {}).get("email"),
+                        "since": (l or {}).get("ts"),
+                        "mine": bool(l and ok and l.get("email") == email),
+                        "ttl": LOCK_TTL})
+
+    @app.route("/api/lock", methods=["POST"])
+    def lock_acquire():
+        ok, email = current_editor()
+        if not ok:
+            return jsonify({"ok": False, "error": "not authorised"}), 403
+        force = bool((request.get_json(silent=True) or {}).get("force"))
+        l = read_lock()
+        if l and l.get("email") != email and not force:
+            return jsonify({"ok": False, "by": l.get("email"), "since": l.get("ts")}), 409
+        write_lock(email)
+        return jsonify({"ok": True, "by": email, "ttl": LOCK_TTL})
+
+    @app.route("/api/lock", methods=["DELETE"])
+    def lock_release():
+        ok, email = current_editor()
+        l = read_lock()
+        if l and ok and l.get("email") == email:
+            clear_lock()
+        return jsonify({"ok": True})
+
     @app.route("/api/weaselwords", methods=["POST"])
     def api_post():
         ok, email = current_editor()
         if not ok:
             return jsonify({"error": "not authorised to edit",
                             "email": email}), 403
+
+        # pessimistic lock: someone else holds a fresh lock -> refuse
+        l = read_lock()
+        if l and l.get("email") != email:
+            return jsonify({"error": "locked", "by": l.get("email"), "since": l.get("ts")}), 423
 
         body = request.get_json(silent=True) or {}
         data = body.get("data")
@@ -217,6 +298,7 @@ def create_app():
         text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
         backup(email)
         atomic_write(text)
+        write_lock(email)   # refresh our lock on every successful save
         log.info("weaselwords.json saved by %s (%d entries)",
                  email, len(data.get("entries", [])))
         return jsonify({"ok": True, "etag": etag_of(text),

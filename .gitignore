@@ -3,10 +3,11 @@
 .env.local
 .env.production
 
-# Runtime data (volume-mounted). The git-tracked seed is the root weaselwords.json.
-data/weaselwords.json
+# data/weaselwords.json is the SINGLE source of truth and IS tracked in git.
+# Only ignore the transient bits:
 data/weaselwords.json.*
 data/.ww-*
+data/*.lock
 data/backups/
 
 # Python artifacts
