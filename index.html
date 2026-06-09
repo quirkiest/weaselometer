@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  /* ===== WeaselOMeter v0.1.19 ===== */
+  /* ===== WeaselOMeter v0.1.20 ===== */
   :root{
     --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
     --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
@@ -79,7 +79,8 @@
   .sp-filters .chip.on{opacity:.95}
   .sp-list{flex:1 1 auto; overflow:auto; padding:7px}
   .sp-empty{color:var(--muted); font-style:italic; padding:24px 14px; text-align:center}
-  .sp-item{padding:8px 10px; border-radius:9px; cursor:pointer; border:1px solid transparent; margin-bottom:3px}
+  .sp-item{padding:9px 10px; border-radius:9px; cursor:pointer; border:1px solid transparent; margin-bottom:0}
+  .sp-item:not(:last-child){border-bottom-color:rgba(0,0,0,.08)}   /* faint divider between items */
   .sp-item:hover{background:#00000008}
   .sp-item.active{background:#fff; border-color:var(--cb); box-shadow:0 1px 6px rgba(0,0,0,.07)}
   .sp-item .meta{display:flex; align-items:center; gap:6px; font-size:12px; text-transform:uppercase;
@@ -213,7 +214,7 @@
 
     <div class="actions">
       <button class="primary" id="againBtn">New document</button>
-      <span class="ver" id="verTop">v0.1.19</span>
+      <span class="ver" id="verTop">v0.1.20</span>
     </div>
   </div>
 </div>
@@ -351,7 +352,7 @@
 
 <div id="toast"></div>
 
-<footer>WeaselOMeter <span id="verFoot">v0.1.19</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+<footer>WeaselOMeter <span id="verFoot">v0.1.20</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -359,8 +360,8 @@
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script>
-/* ================= WeaselOMeter v0.1.19 ================= */
-const VERSION = "0.1.19";
+/* ================= WeaselOMeter v0.1.20 ================= */
+const VERSION = "0.1.20";
 const $ = s => document.querySelector(s);
 $('#verTop').textContent  = "v"+VERSION;
 $('#verFoot').textContent = "v"+VERSION;
