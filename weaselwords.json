@@ -1,0 +1,850 @@
+{
+  "version": "0.1.4",
+  "meta": {
+    "name": "WeaselOMeter word bank",
+    "notes": "Edit freely. 'match' entries are matched case-insensitively as whole words/phrases. Use score 1 (mild) to 5 (egregious). TLAs are mostly auto-detected by regex; entries here override the generic feedback for specific acronyms."
+  },
+  "categories": {
+    "bs": {
+      "name": "BotSlop",
+      "color": "#7c4dff",
+      "defaultScore": 4,
+      "blurb": "Classic AI-generated filler."
+    },
+    "we": {
+      "name": "Weasely",
+      "color": "#e5394b",
+      "defaultScore": 3,
+      "blurb": "Slippery, imprecise or just plain tricksy."
+    },
+    "cb": {
+      "name": "Consultant Bingo",
+      "color": "#f5a623",
+      "defaultScore": 3,
+      "blurb": "Pure management-consulting fluff."
+    },
+    "tla": {
+      "name": "(E)TLAs",
+      "color": "#2d9cdb",
+      "defaultScore": 1,
+      "blurb": "Acronyms. (Extended) Three-Letter Abbreviations."
+    },
+    "tb": {
+      "name": "Technobabble",
+      "color": "#27ae60",
+      "defaultScore": 3,
+      "blurb": "A five-dollar word where a fifty-cent word would do."
+    }
+  },
+  "tiers": [
+    {
+      "max": 0,
+      "label": "Squeaky Clean",
+      "blurb": "Not a whisker out of place. Suspiciously honest."
+    },
+    {
+      "max": 8,
+      "label": "Faint Whiff",
+      "blurb": "Mostly fine. One or two paws on the scale."
+    },
+    {
+      "max": 18,
+      "label": "Bit Whiffy",
+      "blurb": "Some genuine weaselage detected. Tidy it up."
+    },
+    {
+      "max": 32,
+      "label": "Notably Niffy",
+      "blurb": "The buzzwords are circling. Reader is wincing."
+    },
+    {
+      "max": 50,
+      "label": "Heavy Weaselage",
+      "blurb": "This document needs a shower and a plain-English coach."
+    },
+    {
+      "max": 100,
+      "label": "OMG TOTAL WEASEL",
+      "blurb": "Pure, distilled gobbledygook. The Golden Bull salutes you."
+    }
+  ],
+  "calibration": {
+    "note": "WS score = weasel points per 100 words, capped at 100. points = sum of matched entry scores. fillPercent maps score 0..50 -> 0..100% (clamped) so the gauge saturates at 'Heavy Weaselage'.",
+    "perWords": 100,
+    "fillSaturationScore": 50
+  },
+  "entries": [
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "pillar"
+      ],
+      "feedback": "That's a pillar of @&%$#!"
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "enable",
+        "enablement",
+        "enabler"
+      ],
+      "feedback": "Let's \"enable\" so we don't actually have to do anything MEASURABLE"
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "whole-of-"
+      ],
+      "feedback": "We'd love to see a \"bit-of-something\" something."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "outcome"
+      ],
+      "feedback": "Outcomes are results that don't matter."
+    },
+    {
+      "category": "we",
+      "score": 5,
+      "match": [
+        "framework"
+      ],
+      "feedback": "What are you, a painter?  Frameworks are plans without a plan."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "in today's fast-paced world",
+        "in todays fast-paced world",
+        "in today's digital age",
+        "in the ever-evolving landscape",
+        "in an ever-changing world"
+      ],
+      "feedback": "The official opening ceremony of an essay that says nothing."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "it's important to note that",
+        "it is important to note that",
+        "it's worth noting that",
+        "it is worth noting that"
+      ],
+      "feedback": "If it were important, you'd have just said it."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "delve",
+        "delve into",
+        "delving into"
+      ],
+      "feedback": "Nobody has 'delved' into anything since 1847. Hello, robot."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "tapestry",
+        "rich tapestry",
+        "intricate tapestry"
+      ],
+      "feedback": "Put the thesaurus down and step away from the loom."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "navigate the complexities",
+        "navigating the complexities",
+        "navigate the landscape"
+      ],
+      "feedback": "You're writing a memo, not sailing to Tahiti."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "testament to",
+        "a testament to",
+        "stands as a testament"
+      ],
+      "feedback": "Everything is a testament to something with these things."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "it's not just",
+        "it is not just",
+        "it's not only",
+        "it is not only"
+      ],
+      "feedback": "Brace yourself for the 'it's a whole lifestyle' reveal."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "unlock the potential",
+        "unlock the power",
+        "unleash the potential",
+        "unlock new possibilities"
+      ],
+      "feedback": "Where is this padlock and who has the key?"
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "at the end of the day",
+        "when all is said and done"
+      ],
+      "feedback": "At the end of the day, this phrase adds nothing."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "game-changer",
+        "game changer",
+        "a true game-changer",
+        "paradigm shift"
+      ],
+      "feedback": "The game is fine. Stop changing it."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "seamless",
+        "seamlessly",
+        "seamless integration",
+        "seamless experience"
+      ],
+      "feedback": "Has a seam ever actually been spotted? No."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "embark on a journey",
+        "embark on this journey",
+        "this journey",
+        "our journey"
+      ],
+      "feedback": "You filled in a form. It wasn't an odyssey."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "a deep dive",
+        "let's take a deep dive",
+        "deep dive into"
+      ],
+      "feedback": "Mind the shallow end."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "the world of",
+        "in the world of",
+        "realm of",
+        "the realm of"
+      ],
+      "feedback": "Welcome to the magical realm of... your quarterly report."
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "up to",
+        "up to 50% less",
+        "up to 50% more",
+        "save up to",
+        "up to 70% off"
+      ],
+      "feedback": "'Up to' = anywhere from zero to that. Including zero.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "as much as",
+        "as little as"
+      ],
+      "feedback": "Or as much/little as nothing at all. Sneaky.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "some say",
+        "many believe",
+        "it could be argued",
+        "studies suggest",
+        "experts agree",
+        "research shows"
+      ],
+      "feedback": "Which experts? Which studies? Name three. We'll wait."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "may",
+        "might",
+        "could potentially",
+        "potentially",
+        "possibly"
+      ],
+      "feedback": "Could potentially possibly maybe. Or not. Commit.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "arguably",
+        "broadly speaking",
+        "more or less",
+        "in a sense",
+        "to some extent"
+      ],
+      "feedback": "The verbal equivalent of crossing your fingers behind your back."
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "results may vary",
+        "terms and conditions apply",
+        "subject to availability",
+        "while stocks last"
+      ],
+      "feedback": "The asterisk that eats the whole sentence.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "virtually",
+        "practically",
+        "essentially",
+        "basically"
+      ],
+      "feedback": "'Virtually unlimited' is a fancy way to say limited."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "clinically proven",
+        "scientifically formulated",
+        "doctor recommended"
+      ],
+      "feedback": "Proven to do what, exactly? By whom?"
+    },
+    {
+      "category": "we",
+      "score": 2,
+      "match": [
+        "new and improved",
+        "best in class",
+        "world-class",
+        "industry-leading",
+        "market-leading"
+      ],
+      "feedback": "Leading according to the brochure that you wrote."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "a number of",
+        "a variety of",
+        "a range of",
+        "various"
+      ],
+      "feedback": "How many is 'a number'? Pick a number."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "mistakes were made",
+        "concerns have been raised",
+        "lessons will be learned"
+      ],
+      "feedback": "The passive voice: where accountability goes to hide."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "stakeholder",
+        "key stakeholders"
+      ],
+      "feedback": "What are you – a Vampire Slayer?"
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "synergy",
+        "synergistic",
+        "leverage synergies"
+      ],
+      "feedback": "Two things touched and now there's a slide about it."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "leverage"
+      ],
+      "feedback": "It's called 'use'. The word is 'use'."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "circle back",
+        "touch base",
+        "let's touch base",
+        "reach out",
+        "loop in",
+        "loop back"
+      ],
+      "feedback": "I do not touch base. Send an email like a person."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "think outside the box",
+        "outside of the box",
+        "blue sky thinking",
+        "blue-sky thinking"
+      ],
+      "feedback": "The best way outside the box is a smaller box. For you."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "low-hanging fruit",
+        "low hanging fruit",
+        "move the needle",
+        "boil the ocean"
+      ],
+      "feedback": "Mixed-metaphor bingo. Full house."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "going forward",
+        "moving forward",
+        "at this moment in time",
+        "at this point in time"
+      ],
+      "feedback": "As opposed to going backward in time? Just say 'now' or 'next'."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "deliverable",
+        "actionable",
+        "actionable insights"
+      ],
+      "feedback": "A thing you deliver. We had a word for that: 'a thing'."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "value add",
+        "value-add",
+        "value proposition",
+        "add value",
+        "value creation"
+      ],
+      "feedback": "If you have to call it value, it probably isn't."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bandwidth",
+        "do you have the bandwidth",
+        "headspace",
+        "capacity"
+      ],
+      "feedback": "You are a person, not a fibre-optic cable."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "drill down",
+        "drill-down",
+        "double-click on",
+        "double click on",
+        "unpack this",
+        "let's unpack"
+      ],
+      "feedback": "Stop unpacking and double-clicking. Use a sentence."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "best practice",
+        "best practices",
+        "core competency",
+        "core competencies"
+      ],
+      "feedback": "Whose best? Practised by whom? Per the deck, naturally."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "paradigm",
+        "paradigm shift",
+        "north star",
+        "north-star",
+        "single source of truth"
+      ],
+      "feedback": "Found north. Lost the plot."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "ideate",
+        "operationalise",
+        "operationalize",
+        "incentivise",
+        "incentivize",
+        "socialise the idea",
+        "socialize the idea"
+      ],
+      "feedback": "Turning perfectly good nouns into crimes."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "holistic",
+        "holistically",
+        "end-to-end",
+        "end to end",
+        "360-degree",
+        "360 degree"
+      ],
+      "feedback": "Holistic: a normal thing, but spiritual now."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "mission-critical",
+        "mission critical",
+        "ring-fence",
+        "ring fence",
+        "singing from the same hymn sheet",
+        "same page"
+      ],
+      "feedback": "Mission control, we have a buzzword."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "pivot",
+        "let's pivot",
+        "disrupt",
+        "disruptive",
+        "disruptor"
+      ],
+      "feedback": "You changed your mind. That's allowed without a basketball term."
+    },
+    {
+      "category": "cb",
+      "score": 2,
+      "match": [
+        "onboard",
+        "offboarding",
+        "upskill",
+        "reskill"
+      ],
+      "feedback": "Welcome aboard the SS Jargon."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "evangelise",
+        "evangelize",
+        "evangelist",
+        "thought leader",
+        "thought leadership"
+      ],
+      "feedback": "Spreading the gospel of... a spreadsheet."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "subject matter expert",
+        "subject matter experts",
+        "business imperative",
+        "business imperatives"
+      ],
+      "feedback": "From the actual Golden Bull-winning sentence. A modern classic."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bear fruit",
+        "starting to bear fruit",
+        "move the dial",
+        "raise the bar"
+      ],
+      "feedback": "Orchard metaphors: where progress goes to hide."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "utilise",
+        "utilize",
+        "utilisation",
+        "utilization"
+      ],
+      "feedback": "'Use'. It's just 'use' wearing a lab coat."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "functionality",
+        "leverage your functionality",
+        "feature set",
+        "capabilities"
+      ],
+      "feedback": "'Functionality' = 'what it does', billed by the syllable."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "methodology"
+      ],
+      "feedback": "'Method' had a perfectly good ending until '-ology' showed up."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "solutioning",
+        "solution space",
+        "problem space",
+        "ideation"
+      ],
+      "feedback": "Solutioning is not a word. It is a cry for help."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "non-parametric",
+        "quantum of",
+        "asymptotic",
+        "stochastic",
+        "heuristic"
+      ],
+      "feedback": "Sounds like physics. Is a memo about lunch."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "robust standards base",
+        "high-availability",
+        "straight-through-processing",
+        "decouple vertical silos",
+        "services grid model"
+      ],
+      "feedback": "Genuine sentence from a real bank. Genuinely meaningless."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "orchestrate",
+        "orchestration",
+        "instantiate",
+        "instantiation"
+      ],
+      "feedback": "You're configuring software, not conducting Beethoven."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "scalable",
+        "scalability",
+        "performant",
+        "optimise",
+        "optimize",
+        "optimisation",
+        "optimization"
+      ],
+      "feedback": "Make it bigger and faster. There. Free of charge."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "verticality",
+        "granularity",
+        "modality",
+        "optionality",
+        "cadence"
+      ],
+      "feedback": "Architects discussing 'verticality'. They mean height."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "monetise underutilised assets",
+        "monetize underutilized assets",
+        "underutilised physical assets",
+        "underutilized physical assets"
+      ],
+      "feedback": "An American CFO sold an old warehouse. This is how he said it."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bleeding edge",
+        "cutting edge",
+        "best-of-breed",
+        "best of breed",
+        "turnkey"
+      ],
+      "feedback": "So sharp it cuts straight through the meaning."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "interoperability",
+        "extensibility",
+        "composability",
+        "observability"
+      ],
+      "feedback": "If it ends in '-bility', double the budget."
+    }
+  ],
+  "tlaOverrides": [
+    {
+      "match": [
+        "ASAP"
+      ],
+      "feedback": "Translation: 'now', but shouty.",
+      "score": 1
+    },
+    {
+      "match": [
+        "EOD",
+        "COB"
+      ],
+      "feedback": "Just say 'by end of day'. It's three more letters."
+    },
+    {
+      "match": [
+        "KPI",
+        "KPIs",
+        "OKR",
+        "OKRs"
+      ],
+      "feedback": "A number someone will ignore at the next review.",
+      "score": 2
+    },
+    {
+      "match": [
+        "ROI"
+      ],
+      "feedback": "Return On Inserting-this-into-every-sentence.",
+      "score": 2
+    },
+    {
+      "match": [
+        "B2B",
+        "B2C",
+        "D2C"
+      ],
+      "feedback": "Letter-to-number-to-letter. Very efficient. Very opaque."
+    },
+    {
+      "match": [
+        "FYI",
+        "TBC",
+        "TBD",
+        "TBA"
+      ],
+      "feedback": "To Be Determined: the most honest acronym here."
+    },
+    {
+      "match": [
+        "SaaS",
+        "PaaS",
+        "IaaS"
+      ],
+      "feedback": "Everything-as-a-Service, including, apparently, confusion."
+    },
+    {
+      "match": [
+        "MVP"
+      ],
+      "feedback": "Minimum Viable Patience for reading this.",
+      "score": 2
+    },
+    {
+      "match": [
+        "EBITDA"
+      ],
+      "feedback": "Earnings Before I Tricked the Damn Auditor.",
+      "score": 3
+    },
+    {
+      "match": [
+        "WFH",
+        "OOO",
+        "PTO"
+      ],
+      "feedback": "Out Of Office, including the part of the brain that writes plainly."
+    }
+  ]
+}

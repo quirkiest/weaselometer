@@ -1,0 +1,4 @@
+flask>=3.0
+PyJWT>=2.8
+cryptography>=41.0
+requests>=2.31

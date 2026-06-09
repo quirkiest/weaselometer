@@ -1,0 +1,26 @@
+# Environment / secrets
+.env
+.env.local
+.env.production
+
+# Runtime data (volume-mounted). The git-tracked seed is the root weaselwords.json.
+data/weaselwords.json
+data/weaselwords.json.*
+data/.ww-*
+data/backups/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE / OS
+.DS_Store
+.vscode/

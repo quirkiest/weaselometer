@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WeaselOMeter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ===== WeaselOMeter v0.1.7 ===== */
+  :root{
+    --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
+    --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"EB Garamond",Garamond,"Times New Roman",serif;
+    font-size:19px; line-height:1.65;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  a{color:var(--tla)}
+  .ver{font-size:12px; color:var(--muted); letter-spacing:.04em}
+
+  /* ---- top score panel (sticky) ---- */
+  #top{
+    flex:0 0 auto; background:var(--panel); border-bottom:2px solid var(--line);
+    box-shadow:0 4px 14px rgba(0,0,0,.06); z-index:5;
+  }
+  .topwrap{max-width:980px; margin:0 auto; padding:14px 22px; display:flex; gap:22px; align-items:center}
+  .brand{display:flex; flex-direction:column; gap:2px; min-width:150px}
+  .brand h1{font-size:30px; margin:0; letter-spacing:.01em}
+  .brand .tag{font-size:13px; color:var(--muted); font-style:italic}
+
+  .gauge{flex:0 0 120px; text-align:center}
+  /* weasel gauge: faint chap = empty; full-colour chap revealed bottom->top = fill (no CSS mask) */
+  .wgauge{position:relative; width:118px; height:118px; margin:0 auto}
+  .wgauge img{position:absolute; left:0; bottom:0; width:118px; height:118px; object-fit:contain; display:block}
+  .wgauge .wbase{opacity:.20}
+  .wfillwrap{position:absolute; left:0; right:0; bottom:0; overflow:hidden; transition:height .35s ease}
+  .wtint{position:absolute; left:0; bottom:0; width:118px; height:118px; mix-blend-mode:color; opacity:.7;
+    -webkit-mask:url('WeaselChap.png') bottom/contain no-repeat; mask:url('WeaselChap.png') bottom/contain no-repeat}
+
+  .verdict{flex:1 1 auto; min-width:0}
+  .verdict .score{font-size:15px; color:var(--muted)}
+  .verdict .score b{font-size:34px; color:var(--ink); font-family:inherit}
+  .verdict .label{font-size:26px; font-weight:600; margin:2px 0}
+  .verdict .blurb{font-size:16px; color:var(--muted); font-style:italic}
+
+  .cats{display:flex; flex-wrap:wrap; gap:7px; margin-top:8px}
+  .chip{font-size:13px; padding:3px 9px; border-radius:20px; color:#fff; white-space:nowrap; opacity:.92}
+  .chip b{font-weight:600}
+
+  .actions{flex:0 0 auto; display:flex; flex-direction:column; gap:7px; align-items:flex-end}
+  button,.btn{font-family:inherit; font-size:15px; cursor:pointer; border:1px solid var(--line);
+    background:#fff; color:var(--ink); padding:7px 13px; border-radius:8px}
+  button:hover,.btn:hover{background:#f0eadd}
+  button.primary{background:var(--ink); color:#fff; border-color:var(--ink)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  .linkish{background:none;border:none;color:var(--tla);text-decoration:underline;padding:0;font-size:13px;cursor:pointer}
+
+  /* ---- scrollable document ---- */
+  #docscroll{flex:1 1 auto; overflow:auto}
+  #doc{max-width:820px; margin:0 auto; padding:34px 26px 80px; word-wrap:break-word}
+  #doc h1,#doc h2,#doc h3,#doc h4,#doc h5,#doc h6{font-weight:600; line-height:1.25; margin:1.15em 0 .4em}
+  #doc h1{font-size:30px} #doc h2{font-size:25px} #doc h3{font-size:21px}
+  #doc h4{font-size:18px} #doc h5,#doc h6{font-size:16px; color:var(--muted)}
+  #doc p{margin:0 0 .9em}
+  #doc ul,#doc ol{margin:0 0 .9em 1.4em} #doc li{margin:.15em 0}
+  #doc blockquote{margin:0 0 .9em; padding:.2em 0 .2em 1em; border-left:3px solid var(--line); color:var(--muted)}
+  #doc strong{font-weight:600} #doc em{font-style:italic} #doc a{color:var(--tla)}
+  #doc code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.9em; background:#0000000d; padding:.05em .3em; border-radius:4px}
+  #doc pre{white-space:pre-wrap; background:#0000000a; padding:10px 12px; border-radius:8px; overflow:auto}
+  #doc pre code{background:none; padding:0}
+  #doc hr{border:none; border-top:1px solid var(--line); margin:1.4em 0}
+  #doc table{border-collapse:collapse; margin:0 0 .9em} #doc th,#doc td{border:1px solid var(--line); padding:5px 9px}
+  #doc img{max-width:100%}
+
+  /* ---- highlights ---- */
+  mark{padding:.02em .08em; border-radius:3px; cursor:help; color:inherit;
+    border-bottom:2px solid; background:transparent}
+  mark.bs{background:rgba(124,77,255,.16); border-color:var(--bs)}
+  mark.we{background:rgba(229,57,75,.16); border-color:var(--we)}
+  mark.cb{background:rgba(245,166,35,.20); border-color:var(--cb)}
+  mark.tla{background:rgba(45,156,219,.16); border-color:var(--tla)}
+  mark.tb{background:rgba(39,174,96,.16); border-color:var(--tb)}
+
+  /* ---- tooltip ---- */
+  #tip{position:fixed; max-width:280px; background:#2b2620; color:#fbf8f1; padding:10px 13px;
+    border-radius:9px; font-size:14px; line-height:1.45; pointer-events:none; opacity:0;
+    transition:opacity .1s; z-index:50; box-shadow:0 6px 20px rgba(0,0,0,.28)}
+  #tip .tcat{font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; margin-bottom:3px}
+  #tip .tfb{font-style:italic}
+  #tip .tsc{margin-top:5px; font-size:12px; opacity:.7}
+
+  /* ---- intro / dropzone ---- */
+  #intro{flex:1 1 auto; overflow:auto; display:flex; align-items:center; justify-content:center}
+  .card{max-width:620px; width:100%; margin:24px; background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; padding:32px 34px; box-shadow:0 8px 30px rgba(0,0,0,.07)}
+  .card h2{margin:.1em 0 .3em; font-size:24px}
+  .card p{color:var(--muted); margin:.4em 0}
+  .gate{margin:18px 0; padding:14px 16px; background:#fff; border:1px dashed var(--line); border-radius:10px}
+  .gate label{cursor:pointer; user-select:none}
+  #drop{margin-top:18px; border:2px dashed var(--line); border-radius:12px; padding:26px; text-align:center;
+    color:var(--muted); transition:.15s}
+  #drop.hot{border-color:var(--cb); background:#fff7e8; color:var(--ink)}
+  #drop.disabled{opacity:.45; pointer-events:none}
+  textarea{width:100%; min-height:120px; margin-top:12px; font-family:inherit; font-size:17px;
+    padding:12px; border:1px solid var(--line); border-radius:10px; resize:vertical; background:#fff}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px}
+  .note{font-size:13px; color:var(--muted)}
+  .err{color:var(--we); font-size:14px; margin-top:8px; min-height:1em}
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px}
+  .legend .chip{opacity:.95}
+  footer{flex:0 0 auto; text-align:center; padding:6px; font-size:12px; color:var(--muted);
+    border-top:1px solid var(--line); background:var(--panel)}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<!-- ===== TOP SCORE PANEL ===== -->
+<div id="top" class="hidden">
+  <div class="topwrap">
+    <div class="brand">
+      <h1>WeaselOMeter</h1>
+      <span class="tag">fun, but instructive</span>
+    </div>
+
+    <div class="gauge" id="gaugeBox"></div>
+
+    <div class="verdict">
+      <div class="score">WS score <b id="wsScore">0</b> <span style="font-size:14px">/ 100</span></div>
+      <div class="label" id="wsLabel">—</div>
+      <div class="blurb" id="wsBlurb"></div>
+      <div class="cats" id="catChips"></div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="againBtn">New document</button>
+      <span class="ver" id="verTop">v0.1.7</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INTRO / UPLOAD ===== -->
+<div id="intro">
+  <div class="card">
+    <h2>The WeaselOMeter</h2>
+    <p>Upload something and we'll hunt down the slippery, the slopful and the consultant-brained.
+       Everything is analysed <b>right here in your browser</b> — nothing is uploaded anywhere.</p>
+
+    <div class="gate">
+      <label><input type="checkbox" id="humanChk"> I solemnly swear I am a human, and not a weasel (probably).</label>
+    </div>
+
+    <div id="drop" class="disabled">
+      <div style="font-size:20px">📄 Drop a file here, or
+        <label class="btn" style="display:inline-block">choose one<input type="file" id="fileInput" class="hidden" accept=".txt,.md,.markdown,.docx,.pdf,.pages,text/plain,application/pdf"></label>
+      </div>
+      <div class="note" style="margin-top:8px">Supports .txt · .md · .docx (Word) · .pdf · .pages (best-effort)</div>
+    </div>
+
+    <div class="row" style="margin-top:18px"><b>…or just paste text:</b></div>
+    <textarea id="pasteArea" placeholder="Paste the offending prose here…" disabled></textarea>
+    <div class="row">
+      <button class="primary" id="pasteBtn" disabled>Weaselyse the text</button>
+      <span class="note" id="dictNote">Loading word bank…</span>
+    </div>
+    <div class="err" id="introErr"></div>
+
+    <div class="legend" id="introLegend"></div>
+  </div>
+</div>
+
+<!-- ===== DOCUMENT ===== -->
+<div id="docscroll" class="hidden"><div id="doc"></div></div>
+
+<!-- JSON fallback picker (file:// without server) -->
+<input type="file" id="jsonInput" class="hidden" accept=".json,application/json">
+
+<!-- Built-in word bank: used automatically when opened from disk (file://).
+     When the folder is served over http(s), external weaselwords.json is fetched
+     instead so your edits stay live. Keep this block in sync with that file. -->
+<script id="embeddedDict" type="application/json">{
+  "version": "0.1.4",
+  "meta": {
+    "name": "WeaselOMeter word bank",
+    "notes": "Edit freely. 'match' entries are matched case-insensitively as whole words/phrases. Use score 1 (mild) to 5 (egregious). TLAs are mostly auto-detected by regex; entries here override the generic feedback for specific acronyms."
+  },
+  "categories": {
+    "bs": {
+      "name": "BotSlop",
+      "color": "#7c4dff",
+      "defaultScore": 4,
+      "blurb": "Classic AI-generated filler."
+    },
+    "we": {
+      "name": "Weasely",
+      "color": "#e5394b",
+      "defaultScore": 3,
+      "blurb": "Slippery, imprecise or just plain tricksy."
+    },
+    "cb": {
+      "name": "Consultant Bingo",
+      "color": "#f5a623",
+      "defaultScore": 3,
+      "blurb": "Pure management-consulting fluff."
+    },
+    "tla": {
+      "name": "(E)TLAs",
+      "color": "#2d9cdb",
+      "defaultScore": 1,
+      "blurb": "Acronyms. (Extended) Three-Letter Abbreviations."
+    },
+    "tb": {
+      "name": "Technobabble",
+      "color": "#27ae60",
+      "defaultScore": 3,
+      "blurb": "A five-dollar word where a fifty-cent word would do."
+    }
+  },
+  "tiers": [
+    {
+      "max": 0,
+      "label": "Squeaky Clean",
+      "blurb": "Not a whisker out of place. Suspiciously honest."
+    },
+    {
+      "max": 8,
+      "label": "Faint Whiff",
+      "blurb": "Mostly fine. One or two paws on the scale."
+    },
+    {
+      "max": 18,
+      "label": "Bit Whiffy",
+      "blurb": "Some genuine weaselage detected. Tidy it up."
+    },
+    {
+      "max": 32,
+      "label": "Notably Niffy",
+      "blurb": "The buzzwords are circling. Reader is wincing."
+    },
+    {
+      "max": 50,
+      "label": "Heavy Weaselage",
+      "blurb": "This document needs a shower and a plain-English coach."
+    },
+    {
+      "max": 100,
+      "label": "OMG TOTAL WEASEL",
+      "blurb": "Pure, distilled gobbledygook. The Golden Bull salutes you."
+    }
+  ],
+  "calibration": {
+    "note": "WS score = weasel points per 100 words, capped at 100. points = sum of matched entry scores. fillPercent maps score 0..50 -> 0..100% (clamped) so the gauge saturates at 'Heavy Weaselage'.",
+    "perWords": 100,
+    "fillSaturationScore": 50
+  },
+  "entries": [
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "pillar"
+      ],
+      "feedback": "That's a pillar of @&%$#!"
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "enable",
+        "enablement",
+        "enabler"
+      ],
+      "feedback": "Let's \"enable\" so we don't actually have to do anything MEASURABLE"
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "whole-of-"
+      ],
+      "feedback": "We'd love to see a \"bit-of-something\" something."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "outcome"
+      ],
+      "feedback": "Outcomes are results that don't matter."
+    },
+    {
+      "category": "we",
+      "score": 5,
+      "match": [
+        "framework"
+      ],
+      "feedback": "What are you, a painter?  Frameworks are plans without a plan."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "in today's fast-paced world",
+        "in todays fast-paced world",
+        "in today's digital age",
+        "in the ever-evolving landscape",
+        "in an ever-changing world"
+      ],
+      "feedback": "The official opening ceremony of an essay that says nothing."
+    },
+    {
+      "category": "bs",
+      "score": 5,
+      "match": [
+        "it's important to note that",
+        "it is important to note that",
+        "it's worth noting that",
+        "it is worth noting that"
+      ],
+      "feedback": "If it were important, you'd have just said it."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "delve",
+        "delve into",
+        "delving into"
+      ],
+      "feedback": "Nobody has 'delved' into anything since 1847. Hello, robot."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "tapestry",
+        "rich tapestry",
+        "intricate tapestry"
+      ],
+      "feedback": "Put the thesaurus down and step away from the loom."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "navigate the complexities",
+        "navigating the complexities",
+        "navigate the landscape"
+      ],
+      "feedback": "You're writing a memo, not sailing to Tahiti."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "testament to",
+        "a testament to",
+        "stands as a testament"
+      ],
+      "feedback": "Everything is a testament to something with these things."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "it's not just",
+        "it is not just",
+        "it's not only",
+        "it is not only"
+      ],
+      "feedback": "Brace yourself for the 'it's a whole lifestyle' reveal."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "unlock the potential",
+        "unlock the power",
+        "unleash the potential",
+        "unlock new possibilities"
+      ],
+      "feedback": "Where is this padlock and who has the key?"
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "at the end of the day",
+        "when all is said and done"
+      ],
+      "feedback": "At the end of the day, this phrase adds nothing."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "game-changer",
+        "game changer",
+        "a true game-changer",
+        "paradigm shift"
+      ],
+      "feedback": "The game is fine. Stop changing it."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "seamless",
+        "seamlessly",
+        "seamless integration",
+        "seamless experience"
+      ],
+      "feedback": "Has a seam ever actually been spotted? No."
+    },
+    {
+      "category": "bs",
+      "score": 4,
+      "match": [
+        "embark on a journey",
+        "embark on this journey",
+        "this journey",
+        "our journey"
+      ],
+      "feedback": "You filled in a form. It wasn't an odyssey."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "a deep dive",
+        "let's take a deep dive",
+        "deep dive into"
+      ],
+      "feedback": "Mind the shallow end."
+    },
+    {
+      "category": "bs",
+      "score": 3,
+      "match": [
+        "the world of",
+        "in the world of",
+        "realm of",
+        "the realm of"
+      ],
+      "feedback": "Welcome to the magical realm of... your quarterly report."
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "up to",
+        "up to 50% less",
+        "up to 50% more",
+        "save up to",
+        "up to 70% off"
+      ],
+      "feedback": "'Up to' = anywhere from zero to that. Including zero.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "as much as",
+        "as little as"
+      ],
+      "feedback": "Or as much/little as nothing at all. Sneaky.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "some say",
+        "many believe",
+        "it could be argued",
+        "studies suggest",
+        "experts agree",
+        "research shows"
+      ],
+      "feedback": "Which experts? Which studies? Name three. We'll wait."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "may",
+        "might",
+        "could potentially",
+        "potentially",
+        "possibly"
+      ],
+      "feedback": "Could potentially possibly maybe. Or not. Commit.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "arguably",
+        "broadly speaking",
+        "more or less",
+        "in a sense",
+        "to some extent"
+      ],
+      "feedback": "The verbal equivalent of crossing your fingers behind your back."
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "results may vary",
+        "terms and conditions apply",
+        "subject to availability",
+        "while stocks last"
+      ],
+      "feedback": "The asterisk that eats the whole sentence.",
+      "exact": true
+    },
+    {
+      "category": "we",
+      "score": 4,
+      "match": [
+        "virtually",
+        "practically",
+        "essentially",
+        "basically"
+      ],
+      "feedback": "'Virtually unlimited' is a fancy way to say limited."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "clinically proven",
+        "scientifically formulated",
+        "doctor recommended"
+      ],
+      "feedback": "Proven to do what, exactly? By whom?"
+    },
+    {
+      "category": "we",
+      "score": 2,
+      "match": [
+        "new and improved",
+        "best in class",
+        "world-class",
+        "industry-leading",
+        "market-leading"
+      ],
+      "feedback": "Leading according to the brochure that you wrote."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "a number of",
+        "a variety of",
+        "a range of",
+        "various"
+      ],
+      "feedback": "How many is 'a number'? Pick a number."
+    },
+    {
+      "category": "we",
+      "score": 3,
+      "match": [
+        "mistakes were made",
+        "concerns have been raised",
+        "lessons will be learned"
+      ],
+      "feedback": "The passive voice: where accountability goes to hide."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "stakeholder",
+        "key stakeholders"
+      ],
+      "feedback": "What are you – a Vampire Slayer?"
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "synergy",
+        "synergistic",
+        "leverage synergies"
+      ],
+      "feedback": "Two things touched and now there's a slide about it."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "leverage"
+      ],
+      "feedback": "It's called 'use'. The word is 'use'."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "circle back",
+        "touch base",
+        "let's touch base",
+        "reach out",
+        "loop in",
+        "loop back"
+      ],
+      "feedback": "I do not touch base. Send an email like a person."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "think outside the box",
+        "outside of the box",
+        "blue sky thinking",
+        "blue-sky thinking"
+      ],
+      "feedback": "The best way outside the box is a smaller box. For you."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "low-hanging fruit",
+        "low hanging fruit",
+        "move the needle",
+        "boil the ocean"
+      ],
+      "feedback": "Mixed-metaphor bingo. Full house."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "going forward",
+        "moving forward",
+        "at this moment in time",
+        "at this point in time"
+      ],
+      "feedback": "As opposed to going backward in time? Just say 'now' or 'next'."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "deliverable",
+        "actionable",
+        "actionable insights"
+      ],
+      "feedback": "A thing you deliver. We had a word for that: 'a thing'."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "value add",
+        "value-add",
+        "value proposition",
+        "add value",
+        "value creation"
+      ],
+      "feedback": "If you have to call it value, it probably isn't."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bandwidth",
+        "do you have the bandwidth",
+        "headspace",
+        "capacity"
+      ],
+      "feedback": "You are a person, not a fibre-optic cable."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "drill down",
+        "drill-down",
+        "double-click on",
+        "double click on",
+        "unpack this",
+        "let's unpack"
+      ],
+      "feedback": "Stop unpacking and double-clicking. Use a sentence."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "best practice",
+        "best practices",
+        "core competency",
+        "core competencies"
+      ],
+      "feedback": "Whose best? Practised by whom? Per the deck, naturally."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "paradigm",
+        "paradigm shift",
+        "north star",
+        "north-star",
+        "single source of truth"
+      ],
+      "feedback": "Found north. Lost the plot."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "ideate",
+        "operationalise",
+        "operationalize",
+        "incentivise",
+        "incentivize",
+        "socialise the idea",
+        "socialize the idea"
+      ],
+      "feedback": "Turning perfectly good nouns into crimes."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "holistic",
+        "holistically",
+        "end-to-end",
+        "end to end",
+        "360-degree",
+        "360 degree"
+      ],
+      "feedback": "Holistic: a normal thing, but spiritual now."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "mission-critical",
+        "mission critical",
+        "ring-fence",
+        "ring fence",
+        "singing from the same hymn sheet",
+        "same page"
+      ],
+      "feedback": "Mission control, we have a buzzword."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "pivot",
+        "let's pivot",
+        "disrupt",
+        "disruptive",
+        "disruptor"
+      ],
+      "feedback": "You changed your mind. That's allowed without a basketball term."
+    },
+    {
+      "category": "cb",
+      "score": 2,
+      "match": [
+        "onboard",
+        "offboarding",
+        "upskill",
+        "reskill"
+      ],
+      "feedback": "Welcome aboard the SS Jargon."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "evangelise",
+        "evangelize",
+        "evangelist",
+        "thought leader",
+        "thought leadership"
+      ],
+      "feedback": "Spreading the gospel of... a spreadsheet."
+    },
+    {
+      "category": "cb",
+      "score": 4,
+      "match": [
+        "subject matter expert",
+        "subject matter experts",
+        "business imperative",
+        "business imperatives"
+      ],
+      "feedback": "From the actual Golden Bull-winning sentence. A modern classic."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bear fruit",
+        "starting to bear fruit",
+        "move the dial",
+        "raise the bar"
+      ],
+      "feedback": "Orchard metaphors: where progress goes to hide."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "utilise",
+        "utilize",
+        "utilisation",
+        "utilization"
+      ],
+      "feedback": "'Use'. It's just 'use' wearing a lab coat."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "functionality",
+        "leverage your functionality",
+        "feature set",
+        "capabilities"
+      ],
+      "feedback": "'Functionality' = 'what it does', billed by the syllable."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "methodology"
+      ],
+      "feedback": "'Method' had a perfectly good ending until '-ology' showed up."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "solutioning",
+        "solution space",
+        "problem space",
+        "ideation"
+      ],
+      "feedback": "Solutioning is not a word. It is a cry for help."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "non-parametric",
+        "quantum of",
+        "asymptotic",
+        "stochastic",
+        "heuristic"
+      ],
+      "feedback": "Sounds like physics. Is a memo about lunch."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "robust standards base",
+        "high-availability",
+        "straight-through-processing",
+        "decouple vertical silos",
+        "services grid model"
+      ],
+      "feedback": "Genuine sentence from a real bank. Genuinely meaningless."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "orchestrate",
+        "orchestration",
+        "instantiate",
+        "instantiation"
+      ],
+      "feedback": "You're configuring software, not conducting Beethoven."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "scalable",
+        "scalability",
+        "performant",
+        "optimise",
+        "optimize",
+        "optimisation",
+        "optimization"
+      ],
+      "feedback": "Make it bigger and faster. There. Free of charge."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "verticality",
+        "granularity",
+        "modality",
+        "optionality",
+        "cadence"
+      ],
+      "feedback": "Architects discussing 'verticality'. They mean height."
+    },
+    {
+      "category": "tb",
+      "score": 4,
+      "match": [
+        "monetise underutilised assets",
+        "monetize underutilized assets",
+        "underutilised physical assets",
+        "underutilized physical assets"
+      ],
+      "feedback": "An American CFO sold an old warehouse. This is how he said it."
+    },
+    {
+      "category": "cb",
+      "score": 3,
+      "match": [
+        "bleeding edge",
+        "cutting edge",
+        "best-of-breed",
+        "best of breed",
+        "turnkey"
+      ],
+      "feedback": "So sharp it cuts straight through the meaning."
+    },
+    {
+      "category": "tb",
+      "score": 3,
+      "match": [
+        "interoperability",
+        "extensibility",
+        "composability",
+        "observability"
+      ],
+      "feedback": "If it ends in '-bility', double the budget."
+    }
+  ],
+  "tlaOverrides": [
+    {
+      "match": [
+        "ASAP"
+      ],
+      "feedback": "Translation: 'now', but shouty.",
+      "score": 1
+    },
+    {
+      "match": [
+        "EOD",
+        "COB"
+      ],
+      "feedback": "Just say 'by end of day'. It's three more letters."
+    },
+    {
+      "match": [
+        "KPI",
+        "KPIs",
+        "OKR",
+        "OKRs"
+      ],
+      "feedback": "A number someone will ignore at the next review.",
+      "score": 2
+    },
+    {
+      "match": [
+        "ROI"
+      ],
+      "feedback": "Return On Inserting-this-into-every-sentence.",
+      "score": 2
+    },
+    {
+      "match": [
+        "B2B",
+        "B2C",
+        "D2C"
+      ],
+      "feedback": "Letter-to-number-to-letter. Very efficient. Very opaque."
+    },
+    {
+      "match": [
+        "FYI",
+        "TBC",
+        "TBD",
+        "TBA"
+      ],
+      "feedback": "To Be Determined: the most honest acronym here."
+    },
+    {
+      "match": [
+        "SaaS",
+        "PaaS",
+        "IaaS"
+      ],
+      "feedback": "Everything-as-a-Service, including, apparently, confusion."
+    },
+    {
+      "match": [
+        "MVP"
+      ],
+      "feedback": "Minimum Viable Patience for reading this.",
+      "score": 2
+    },
+    {
+      "match": [
+        "EBITDA"
+      ],
+      "feedback": "Earnings Before I Tricked the Damn Auditor.",
+      "score": 3
+    },
+    {
+      "match": [
+        "WFH",
+        "OOO",
+        "PTO"
+      ],
+      "feedback": "Out Of Office, including the part of the brain that writes plainly."
+    }
+  ]
+}</script>
+
+<div id="tip"></div>
+<footer>WeaselOMeter <span id="verFoot">v0.1.7</span> · client-side only · inspired by Deloitte's “Bullfighter” (2003)</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+/* ================= WeaselOMeter v0.1.7 ================= */
+const VERSION = "0.1.7";
+const $ = s => document.querySelector(s);
+$('#verTop').textContent  = "v"+VERSION;
+$('#verFoot').textContent = "v"+VERSION;
+
+let DICT = null;
+let DICT_SOURCE = '';
+
+/* ---------- load dictionary ----------
+   1. external weaselwords.json (when served over http/https — your edits stay live)
+   2. built-in embedded copy (works on plain double-click / file://)
+   3. manual JSON picker (last resort)                                        */
+async function loadDict(){
+  // 1. try external
+  try{
+    const r = await fetch('weaselwords.json?ts='+Date.now(), {cache:'no-store'});
+    if(r.ok){
+      DICT = await r.json();
+      DICT_SOURCE = 'external';
+      onDictReady();
+      return;
+    }
+  }catch(e){ /* fall through */ }
+
+  // 2. try embedded
+  try{
+    const raw = $('#embeddedDict').textContent.trim();
+    if(raw && raw.charAt(0) === '{'){
+      DICT = JSON.parse(raw);
+      DICT_SOURCE = 'embedded';
+      onDictReady();
+      return;
+    }
+  }catch(e){ /* fall through */ }
+
+  // 3. manual picker
+  $('#dictNote').innerHTML = 'Couldn\'t load the word bank. ' +
+    '<button class="linkish" id="pickJson">Pick weaselwords.json</button>';
+  $('#pickJson').onclick = ()=> $('#jsonInput').click();
+}
+$('#jsonInput').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{ try{ DICT = JSON.parse(fr.result); DICT_SOURCE='picked'; onDictReady(); }
+                    catch(err){ $('#introErr').textContent = 'That JSON wouldn\'t parse: '+err.message; } };
+  fr.readAsText(f);
+});
+
+function onDictReady(){
+  buildLegend();
+  $('#dictNote').textContent = 'Word bank loaded (' + DICT.entries.length + ' entries, dict v' +
+    (DICT.version||'?') + (DICT_SOURCE==='embedded' ? ', built-in copy' : '') + ').';
+  refreshGate();
+}
+
+/* ---------- human gate ---------- */
+function refreshGate(){
+  const ok = $('#humanChk').checked && !!DICT;
+  $('#drop').classList.toggle('disabled', !ok);
+  $('#pasteArea').disabled = !ok;
+  $('#pasteBtn').disabled  = !ok;
+}
+$('#humanChk').addEventListener('change', refreshGate);
+
+/* ---------- legend ---------- */
+function buildLegend(){
+  const wrap = $('#introLegend'); wrap.innerHTML='';
+  for(const [code,c] of Object.entries(DICT.categories)){
+    const s=document.createElement('span'); s.className='chip'; s.style.background='var(--'+code+')';
+    s.innerHTML='<b>'+c.name+'</b> — '+c.blurb;
+    wrap.appendChild(s);
+  }
+}
+
+/* ================= FILE INTAKE ================= */
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hot');}));
+drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+$('#fileInput').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) handleFile(f); });
+$('#pasteBtn').addEventListener('click', ()=>{
+  const t=$('#pasteArea').value.trim();
+  if(!t){ $('#introErr').textContent='Nothing to weaselyse — paste some text first.'; return; }
+  analyseAndShow(t);
+});
+$('#againBtn').addEventListener('click', ()=>{
+  $('#top').classList.add('hidden'); $('#docscroll').classList.add('hidden');
+  $('#intro').classList.remove('hidden'); $('#introErr').textContent=''; $('#pasteArea').value='';
+});
+
+async function handleFile(file){
+  $('#introErr').textContent='';
+  const name=(file.name||'').toLowerCase();
+  try{
+    let md='';
+    if(name.endsWith('.docx')){
+      if(!window.mammoth) throw new Error('Word reader (mammoth.js) didn\'t load — need internet for .docx, or paste the text.');
+      const ab=await file.arrayBuffer();
+      // convertToHtml keeps headings/bold/lists; we turn that into Markdown.
+      const res=await window.mammoth.convertToHtml({arrayBuffer:ab});
+      md=html2md(res.value);
+    }else if(name.endsWith('.pdf')){
+      md=await extractPdfMarkdown(file);
+    }else if(name.endsWith('.pages')){
+      md=await extractPages(file);   // best-effort plain text (treated as Markdown)
+    }else{ // txt / md / markdown / unknown plain — already (or close enough to) Markdown
+      md=await file.text();
+    }
+    if(!md || !md.trim()) throw new Error('No readable text found in that file.');
+    analyseAndShow(md);
+  }catch(err){
+    $('#introErr').textContent = 'Couldn\'t read that file: '+err.message+
+      (name.endsWith('.pages')?' — Pages files often store text in a binary format; try pasting instead.':'');
+  }
+}
+
+/* Minimal HTML -> Markdown (covers what mammoth emits: headings, p, br,
+   strong/em, ul/ol/li, blockquote, a). Good enough to keep heading vs body. */
+function html2md(html){
+  const tmp=document.createElement('div'); tmp.innerHTML=html;
+  function walk(node){
+    let out='';
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){ out+=ch.nodeValue.replace(/\s+/g,' '); return; }
+      if(ch.nodeType!==1) return;
+      const tag=ch.tagName.toLowerCase();
+      const inner=walk(ch).trim();
+      if(/^h[1-6]$/.test(tag)) out+='\n\n'+'#'.repeat(+tag[1])+' '+inner+'\n\n';
+      else if(tag==='p') out+='\n\n'+inner+'\n\n';
+      else if(tag==='br') out+='  \n';
+      else if(tag==='strong'||tag==='b') out+='**'+inner+'**';
+      else if(tag==='em'||tag==='i') out+='*'+inner+'*';
+      else if(tag==='li') out+='\n- '+inner;
+      else if(tag==='ul'||tag==='ol') out+='\n'+inner+'\n';
+      else if(tag==='blockquote') out+='\n\n> '+inner+'\n\n';
+      else if(tag==='a') out+='['+inner+']('+(ch.getAttribute('href')||'')+')';
+      else out+=inner+(/(div|tr|table)/.test(tag)?'\n':'');
+    });
+    return out;
+  }
+  return walk(tmp).replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+/* Best-effort .pages text extraction (Apple bundles are zips). */
+async function extractPages(file){
+  if(!window.JSZip) throw new Error('Zip reader (JSZip) didn\'t load — need internet for .pages, or paste the text.');
+  const zip=await window.JSZip.loadAsync(await file.arrayBuffer());
+  const candidates=['preview.txt','preview-web.html','QuickLook/Preview.html'];
+  for(const c of candidates){
+    if(zip.file(c)){
+      let s=await zip.file(c).async('string');
+      s=s.replace(/<[^>]+>/g,' ');
+      if(s.trim()) return decodeEntities(s);
+    }
+  }
+  let blob='';
+  for(const fname of Object.keys(zip.files)){
+    if(/\.(txt|html|xml)$/i.test(fname)){
+      const s=await zip.file(fname).async('string');
+      blob+=' '+s.replace(/<[^>]+>/g,' ');
+    }
+  }
+  blob=decodeEntities(blob).replace(/\s+/g,' ').trim();
+  if(blob) return blob;
+  throw new Error('this .pages file has no extractable text layer');
+}
+function decodeEntities(s){const t=document.createElement('textarea');t.innerHTML=s;return t.value;}
+
+/* PDF -> Markdown via pdf.js. Lines whose font size is notably larger than the
+   body text are promoted to headings (## ). Text layer only — scanned PDFs won't
+   yield text. */
+async function extractPdfMarkdown(file){
+  if(!window.pdfjsLib) throw new Error('PDF reader (pdf.js) didn\'t load — need internet for .pdf, or paste the text.');
+  const data=new Uint8Array(await file.arrayBuffer());
+  const pdf=await pdfjsLib.getDocument({data}).promise;
+  const lines=[]; // {text, size}
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    const tc=await page.getTextContent();
+    let cur='', size=0;
+    for(const it of tc.items){
+      const sz=Math.hypot(it.transform[2],it.transform[3])||it.height||0;
+      cur+=it.str + (it.hasEOL?'':' ');
+      size=Math.max(size,sz);
+      if(it.hasEOL){ if(cur.trim()) lines.push({text:cur.trim(),size}); cur=''; size=0; }
+    }
+    if(cur.trim()) lines.push({text:cur.trim(),size});
+    lines.push({text:'',size:0}); // blank line between pages
+  }
+  const sizes=lines.filter(l=>l.text).map(l=>l.size).sort((a,b)=>a-b);
+  const body=sizes.length?sizes[Math.floor(sizes.length/2)]:0; // median = body text size
+  const md=lines.map(l=>{
+    if(!l.text) return '';
+    if(body && l.size>=body*1.35 && l.text.length<=120) return '## '+l.text;
+    return l.text;
+  }).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  if(!md) throw new Error('no selectable text found — this looks like a scanned/image-only PDF');
+  return md;
+}
+
+/* ================= ANALYSIS ENGINE ================= */
+function escapeRx(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+/* Auto-inflect the head (last) word: plural/3rd-person + -ed/-ing, with e-drop and y->ies.
+   Lets a single entry "foster" match foster/fosters/fostering/fostered. */
+function inflect(w){
+  const W=w.toLowerCase(); const f=new Set([W]);
+  if(/(s|x|z|ch|sh)$/.test(W)) f.add(W+'es');
+  else if(/[^aeiou]y$/.test(W)) f.add(W.slice(0,-1)+'ies');
+  else f.add(W+'s');
+  if(W.endsWith('e')){ f.add(W+'d'); f.add(W.slice(0,-1)+'ing'); }
+  else if(/[^aeiou]y$/.test(W)){ f.add(W.slice(0,-1)+'ied'); f.add(W+'ing'); }
+  else { f.add(W+'ed'); f.add(W+'ing'); }
+  return [...f];
+}
+/* Build a regex for one phrase. Inflects the last word unless exact, the word
+   has non-letters, or it's too short (<3) to safely inflect. */
+function phraseRegex(phrase, exact){
+  const words=phrase.trim().split(/\s+/);
+  const last=words[words.length-1];
+  let lastPart;
+  if(!exact && /^[a-z]+$/i.test(last) && last.length>=3){
+    lastPart='(?:'+inflect(last).sort((a,b)=>b.length-a.length).map(escapeRx).join('|')+')';
+  }else{
+    lastPart=escapeRx(last);
+  }
+  const head=words.slice(0,-1).map(escapeRx).join('\\s+');
+  const body=(head?head+'\\s+':'')+lastPart;
+  const pre=/^\w/.test(phrase)?'\\b':'';
+  const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
+  return new RegExp(pre+body+post,'gi');
+}
+function buildMatchers(){
+  const matchers=[]; let order=0;
+  for(const e of DICT.entries){
+    const base=DICT.categories[e.category]||{};
+    const score=(e.score!=null)?e.score:(base.defaultScore||1);
+    for(const phrase of e.match){
+      matchers.push({rx:phraseRegex(phrase,e.exact),category:e.category,score,
+        feedback:e.feedback,len:phrase.length,order:order++});
+    }
+  }
+  return matchers;
+}
+
+const TLA_STOP=new Set(['AM','PM','OK','TV','A','I','MR','MS','DR','ST']);
+function findTLAs(text){
+  const out=[];
+  const overrides=(DICT.tlaOverrides||[]);
+  const tlaCat=DICT.categories.tla||{defaultScore:1};
+  let order=900000;
+  for(const o of overrides){
+    const score=(o.score!=null)?o.score:(tlaCat.defaultScore||1);
+    for(const p of o.match){
+      const rx=new RegExp('\\b'+escapeRx(p)+'\\b','g');
+      let m; while((m=rx.exec(text))!==null){
+        out.push({start:m.index,end:m.index+m[0].length,category:'tla',score,feedback:o.feedback,
+          len:m[0].length,order:order++});
+      }
+    }
+  }
+  const grx=/\b[A-Z0-9]{2,6}s?\b/g; let g;
+  while((g=grx.exec(text))!==null){
+    const tok=g[0]; const core=tok.replace(/s$/,'');
+    if(TLA_STOP.has(core)||TLA_STOP.has(tok)) continue;
+    if(!/[A-Z]/.test(core)) continue;
+    if(/^\d+s?$/.test(tok)) continue;
+    out.push({start:g.index,end:g.index+tok.length,category:'tla',
+      score:(tlaCat.defaultScore||1),feedback:'Acronym ahoy. Spell it out at least once — your reader isn\'t in your meeting.',
+      len:tok.length,order:order++});
+  }
+  return out;
+}
+
+/* Find accepted (non-overlapping) matches within a SINGLE string. Phrases never
+   span element boundaries, so matching per text-node gives the same result as
+   whole-document matching while letting us keep the rendered formatting. */
+function collectMatches(text, matchers){
+  let cands=[];
+  for(const mm of matchers){
+    let m; mm.rx.lastIndex=0;
+    while((m=mm.rx.exec(text))!==null){
+      cands.push({start:m.index,end:m.index+m[0].length,category:mm.category,score:mm.score,
+        feedback:mm.feedback,len:m[0].length,order:mm.order});
+      if(m.index===mm.rx.lastIndex) mm.rx.lastIndex++;
+    }
+  }
+  cands=cands.concat(findTLAs(text));
+  cands.sort((a,b)=> (b.score-a.score) || (b.len-a.len) || (a.order-b.order) || (a.start-b.start));
+  const occ=[]; const acc=[];
+  for(const c of cands){
+    let clash=false;
+    for(const o of occ){ if(c.start<o.end && c.end>o.start){clash=true;break;} }
+    if(!clash){ occ.push({start:c.start,end:c.end}); acc.push(c); }
+  }
+  acc.sort((a,b)=>a.start-b.start);
+  return acc;
+}
+
+function markFragment(text, acc){
+  const frag=document.createDocumentFragment(); let pos=0;
+  for(const a of acc){
+    if(a.start>pos) frag.appendChild(document.createTextNode(text.slice(pos,a.start)));
+    const m=document.createElement('mark');
+    m.className=a.category; m.textContent=text.slice(a.start,a.end);
+    m.dataset.cat=a.category; m.dataset.fb=a.feedback||''; m.dataset.score=a.score;
+    frag.appendChild(m); pos=a.end;
+  }
+  if(pos<text.length) frag.appendChild(document.createTextNode(text.slice(pos)));
+  return frag;
+}
+
+/* Walk every text node in the rendered doc, highlight, and tally totals. */
+function highlightContainer(root){
+  const matchers=buildMatchers();
+  const byCat={}; for(const c of Object.keys(DICT.categories)) byCat[c]={points:0,count:0};
+  let points=0, words=0;
+  const walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
+  for(const node of nodes){
+    const text=node.nodeValue;
+    if(!text || !text.trim()) continue;
+    words += (text.trim().match(/\S+/g)||[]).length;
+    const acc=collectMatches(text, matchers);
+    if(!acc.length) continue;
+    for(const a of acc){ points+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score; byCat[a.category].count++;} }
+    node.parentNode.replaceChild(markFragment(text,acc), node);
+  }
+  return {points,byCat,words: words||1};
+}
+
+function scoreFromTotals(t){
+  const sat=(DICT.calibration&&DICT.calibration.fillSaturationScore)||50;
+  const wsScore=Math.min(100, t.points/t.words*100);
+  const fillPct=Math.min(100, (wsScore/sat)*100);
+  const tier=(DICT.tiers||[]).find(x=>wsScore<=x.max)||{label:'OMG TOTAL WEASEL',blurb:''};
+  return {wsScore,fillPct,tier,byCat:t.byCat,points:t.points,words:t.words};
+}
+
+/* ================= RENDER ================= */
+/* Render Markdown -> HTML (headings/body/lists), then highlight in place. */
+function analyseAndShow(markdown){
+  const doc=$('#doc');
+  if(window.marked){
+    try{ marked.setOptions({breaks:true, headerIds:false, mangle:false}); }catch(e){}
+    doc.innerHTML = marked.parse(markdown||'');
+  }else{
+    // offline fallback: no markdown renderer — show as plain paragraphs
+    doc.innerHTML=''; const pre=document.createElement('div');
+    pre.style.whiteSpace='pre-wrap'; pre.textContent=markdown||''; doc.appendChild(pre);
+  }
+  const totals=highlightContainer(doc);
+  renderScore(scoreFromTotals(totals));
+  $('#intro').classList.add('hidden');
+  $('#top').classList.remove('hidden');
+  $('#docscroll').classList.remove('hidden');
+  $('#docscroll').scrollTop=0;
+}
+
+function renderScore(R){
+  $('#wsScore').textContent=Math.round(R.wsScore);
+  $('#wsLabel').textContent=R.tier.label;
+  $('#wsBlurb').textContent=R.tier.blurb||'';
+  const chips=$('#catChips'); chips.innerHTML='';
+  for(const [code,c] of Object.entries(DICT.categories)){
+    const b=R.byCat[code]||{points:0,count:0};
+    const s=document.createElement('span'); s.className='chip'; s.style.background='var(--'+code+')';
+    s.innerHTML='<b>'+c.name+'</b> '+b.count+(b.count?(' ('+b.points+'pt)'):'');
+    s.style.opacity=b.count?'0.95':'0.4';
+    chips.appendChild(s);
+  }
+  drawGauge(R.fillPct);
+}
+
+/* ---- SVG weasel gauge: faint outline + colour fill rising bottom->top ----
+   To swap in the meerkat image later: replace this SVG with an <img> + mask,
+   or build a clipPath from the meerkat silhouette. Inline SVG for now. */
+const GAUGE_IMG='WeaselChap.png'; // swap this filename to change the gauge art
+function drawGauge(pct){
+  const hue=Math.round(120-(pct/100)*120); // 120 green .. 0 red
+  const col='hsl('+hue+',70%,48%)';
+  // wbase = faint full chap (empty). wfillwrap reveals the full-colour chap from the bottom up.
+  // wtint (optional, mask-based) shifts the revealed area toward the WS colour; if mask is
+  // unsupported it simply has no visible effect — the chap still fills correctly.
+  $('#gaugeBox').innerHTML =
+    '<div class="wgauge" role="img" aria-label="Weasel gauge '+Math.round(pct)+'% full">'+
+      '<img class="wbase" src="'+GAUGE_IMG+'" alt="">'+
+      '<div class="wfillwrap" style="height:'+pct+'%">'+
+        '<img class="wfillimg" src="'+GAUGE_IMG+'" alt="">'+
+        '<div class="wtint" style="background:'+col+'"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="ver" style="margin-top:2px">'+Math.round(pct)+'% weasel</div>';
+}
+
+/* ================= TOOLTIP ================= */
+const tip=$('#tip');
+const catName=code=>(DICT&&DICT.categories[code]&&DICT.categories[code].name)||code;
+const catVar =code=>'var(--'+code+')';
+document.addEventListener('mouseover', e=>{
+  const m=e.target.closest('mark'); if(!m) return;
+  tip.innerHTML='<div class="tcat" style="color:'+catVar(m.dataset.cat)+'">'+catName(m.dataset.cat)+
+    '</div><div class="tfb">'+ (m.dataset.fb||'') +'</div><div class="tsc">weasel points: '+m.dataset.score+'</div>';
+  tip.style.opacity='1'; moveTip(e);
+});
+document.addEventListener('mousemove', e=>{ if(tip.style.opacity==='1') moveTip(e); });
+document.addEventListener('mouseout', e=>{ if(e.target.closest('mark')) tip.style.opacity='0'; });
+function moveTip(e){
+  const pad=14; let x=e.clientX+pad, y=e.clientY+pad;
+  const r=tip.getBoundingClientRect();
+  if(x+r.width>innerWidth-8) x=e.clientX-r.width-pad;
+  if(y+r.height>innerHeight-8) y=e.clientY-r.height-pad;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+
+/* ================= GO ================= */
+loadDict();
+</script>
+</body>
+</html>

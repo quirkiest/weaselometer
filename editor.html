@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WeaselOMeter — Word Bank Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ===== WeaselOMeter Editor v0.1.3 ===== */
+  :root{
+    --bg:#f4efe6; --panel:#fbf8f1; --ink:#2b2620; --muted:#7a7064; --line:#e0d7c6;
+    --bs:#7c4dff; --we:#e5394b; --cb:#f5a623; --tla:#2d9cdb; --tb:#27ae60;
+    --ok:#27ae60; --warn:#e5394b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:"EB Garamond",Garamond,"Times New Roman",serif; font-size:17px; line-height:1.5;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px}
+  .ver{font-size:12px; color:var(--muted); letter-spacing:.04em}
+
+  /* toolbar */
+  header{flex:0 0 auto; background:var(--panel); border-bottom:2px solid var(--line);
+    box-shadow:0 3px 12px rgba(0,0,0,.06); z-index:10}
+  .bar{max-width:1100px; margin:0 auto; padding:10px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .bar h1{font-size:22px; margin:0}
+  .grow{flex:1 1 auto}
+  button,.btn{font-family:inherit; font-size:15px; cursor:pointer; border:1px solid var(--line);
+    background:#fff; color:var(--ink); padding:6px 12px; border-radius:8px}
+  button:hover{background:#f0eadd}
+  button.primary{background:var(--ink); color:#fff; border-color:var(--ink)}
+  button.primary:hover{opacity:.9}
+  button.warn{border-color:var(--warn); color:var(--warn)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  .pill{font-size:13px; padding:3px 10px; border-radius:20px; background:#fff; border:1px solid var(--line)}
+  .pill.dirty{background:#fff4d6; border-color:var(--cb)}
+  .pill.ok{background:#e7f6ec; border-color:var(--ok); color:#176a39}
+  .pill.bad{background:#fdeaec; border-color:var(--warn); color:#9a1c28}
+
+  /* tabs */
+  nav{max-width:1100px; margin:0 auto; padding:0 18px 8px; display:flex; gap:6px; flex-wrap:wrap}
+  .tab{padding:6px 14px; border-radius:8px 8px 0 0; cursor:pointer; border:1px solid transparent; color:var(--muted)}
+  .tab.active{background:var(--bg); color:var(--ink); border-color:var(--line); border-bottom-color:var(--bg); font-weight:600}
+
+  main{flex:1 1 auto; overflow:auto}
+  .wrap{max-width:1100px; margin:0 auto; padding:18px}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* controls row */
+  .controls{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
+  input[type=text],input[type=number],select,textarea{font-family:inherit; font-size:15px;
+    padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink)}
+  textarea{resize:vertical; min-height:38px; width:100%}
+  label.fld{display:flex; flex-direction:column; gap:3px; font-size:13px; color:var(--muted)}
+  label.fld span{font-weight:600}
+
+  /* entries */
+  .entry{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px;
+    margin-bottom:10px; display:grid; grid-template-columns:150px 78px 1fr auto; gap:10px; align-items:start}
+  .entry .matchcell{grid-column:1 / 4}
+  .entry .full{grid-column:1 / -1}
+  .entry .acts{grid-column:4; display:flex; flex-direction:column; gap:6px; align-items:stretch}
+  .entry .acts button{font-size:13px; padding:4px 8px}
+  .catdot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle}
+  .rowflags{grid-column:1 / -1; font-size:13px; color:var(--warn); min-height:0}
+  .rowflags:empty{display:none}
+
+  .cardrow{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px;
+    margin-bottom:10px; display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
+  .cardrow .acts{margin-left:auto}
+
+  .hint{font-size:13px; color:var(--muted); margin:4px 0 14px}
+  .sectionhead{display:flex; align-items:center; gap:12px; margin:0 0 6px}
+  .sectionhead h2{font-size:20px; margin:0}
+
+  /* validation list */
+  #valbox{margin-bottom:14px}
+  .vmsg{font-size:14px; padding:6px 10px; border-radius:7px; margin-bottom:5px}
+  .vmsg.err{background:#fdeaec; color:#9a1c28}
+  .vmsg.warnv{background:#fff4d6; color:#7a5500}
+
+  /* tester */
+  .testgrid{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:760px){.testgrid{grid-template-columns:1fr}}
+  #testOut .hit{padding:6px 0; border-bottom:1px dashed var(--line)}
+  mark{padding:.02em .1em; border-radius:3px; border-bottom:2px solid}
+  mark.bs{background:rgba(124,77,255,.16);border-color:var(--bs)}
+  mark.we{background:rgba(229,57,75,.16);border-color:var(--we)}
+  mark.cb{background:rgba(245,166,35,.20);border-color:var(--cb)}
+  mark.tla{background:rgba(45,156,219,.16);border-color:var(--tla)}
+  mark.tb{background:rgba(39,174,96,.16);border-color:var(--tb)}
+  #testRender{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; white-space:pre-wrap; min-height:120px}
+  footer{flex:0 0 auto; text-align:center; padding:6px; font-size:12px; color:var(--muted);
+    border-top:1px solid var(--line); background:var(--panel)}
+  .empty{color:var(--muted); font-style:italic; padding:30px; text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="bar">
+    <h1>🦦 Word Bank Editor</h1>
+    <button id="openBtn" class="primary">Open weaselwords.json…</button>
+    <button id="saveBtn" disabled>Save</button>
+    <button id="saveAsBtn" disabled>Save as…</button>
+    <span class="grow"></span>
+    <span class="pill" id="fileName">no file open</span>
+    <span class="pill" id="dirtyPill">saved</span>
+    <span class="pill" id="valPill">—</span>
+    <span class="ver" id="edVer">Editor v0.1.0</span>
+  </div>
+  <nav id="tabs">
+    <div class="tab active" data-tab="entries">Entries</div>
+    <div class="tab" data-tab="cats">Categories</div>
+    <div class="tab" data-tab="tiers">Tiers</div>
+    <div class="tab" data-tab="tlas">TLA overrides</div>
+    <div class="tab" data-tab="settings">Settings</div>
+    <div class="tab" data-tab="test">Test</div>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap">
+    <div id="noFile" class="empty">
+      Open your <span class="mono">weaselwords.json</span> to start editing.<br>
+      Changes save straight back to that file (Chrome/Edge). Other browsers fall back to a download.
+    </div>
+
+    <!-- ENTRIES -->
+    <section class="panel" data-panel="entries">
+      <div class="controls">
+        <button class="primary" id="addEntry">+ Add entry</button>
+        <input type="text" id="search" placeholder="Search match / feedback…" style="min-width:220px">
+        <select id="catFilter"><option value="">All categories</option></select>
+        <span class="grow"></span>
+        <span class="ver" id="entryCount"></span>
+      </div>
+      <div id="entriesList"></div>
+    </section>
+
+    <!-- CATEGORIES -->
+    <section class="panel" data-panel="cats">
+      <div class="sectionhead"><h2>Categories</h2></div>
+      <p class="hint">Codes are used by entries (e.g. <span class="mono">cb</span>). Editing a code re-points all entries that use it. Default score applies to entries that don't set their own.</p>
+      <div class="controls"><button class="primary" id="addCat">+ Add category</button></div>
+      <div id="catsList"></div>
+    </section>
+
+    <!-- TIERS -->
+    <section class="panel" data-panel="tiers">
+      <div class="sectionhead"><h2>Tiers</h2></div>
+      <p class="hint"><b>max</b> = upper WS-score bound for that tier (weasel points per 100 words). Lowest first; the top tier should be 100. Re-sorted by max on save.</p>
+      <div class="controls"><button class="primary" id="addTier">+ Add tier</button></div>
+      <div id="tiersList"></div>
+    </section>
+
+    <!-- TLA OVERRIDES -->
+    <section class="panel" data-panel="tlas">
+      <div class="sectionhead"><h2>TLA overrides</h2></div>
+      <p class="hint">Acronyms are auto-detected generically. List specific ones here to give them custom feedback / score. One acronym per line in the match box.</p>
+      <div class="controls"><button class="primary" id="addTla">+ Add override</button></div>
+      <div id="tlasList"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="panel" data-panel="settings">
+      <div class="sectionhead"><h2>Settings</h2></div>
+      <div class="cardrow">
+        <label class="fld"><span>Dictionary version</span>
+          <span style="display:flex;gap:6px"><input type="text" id="setVersion" style="width:110px"><button id="bumpVer" title="bump patch">+patch</button></span></label>
+        <label class="fld"><span>Words per score window</span><input type="number" id="setPerWords" style="width:110px"></label>
+        <label class="fld"><span>Fill saturation score</span><input type="number" id="setSat" style="width:110px"></label>
+      </div>
+      <div class="cardrow" style="flex-direction:column; align-items:stretch">
+        <label class="fld"><span>Word bank name (meta.name)</span><input type="text" id="setName"></label>
+        <label class="fld" style="margin-top:8px"><span>Notes (meta.notes)</span><textarea id="setNotes"></textarea></label>
+        <label class="fld" style="margin-top:8px"><span>Calibration note</span><textarea id="setCalNote"></textarea></label>
+      </div>
+    </section>
+
+    <!-- TEST -->
+    <section class="panel" data-panel="test">
+      <div class="sectionhead"><h2>Phrase tester</h2></div>
+      <p class="hint">Type any text. Highlights and scoring use the exact same overlap engine as the app (highest score → longest → entry order).</p>
+      <div class="testgrid">
+        <div>
+          <textarea id="testIn" style="min-height:160px" placeholder="Paste a sentence to test, e.g. 'Let's circle back and leverage synergies, FYI.'"></textarea>
+          <div style="margin-top:8px" id="testScore"></div>
+        </div>
+        <div>
+          <div id="testRender"></div>
+          <div id="testOut" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+<footer>WeaselOMeter Word Bank Editor <span id="edVerFoot">v0.1.0</span> · edits weaselwords.json in place</footer>
+
+<script>
+/* ================= WeaselOMeter Word Bank Editor v0.1.0 ================= */
+const EDITOR_VERSION="0.1.3";
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+$('#edVer').textContent='Editor v'+EDITOR_VERSION;
+$('#edVerFoot').textContent='v'+EDITOR_VERSION;
+
+let DATA=null;          // working copy of the dictionary
+let fileHandle=null;    // FS Access API handle (live save, file:// mode)
+let dirty=false;
+let serverEtag=null;    // last etag seen from the server (optimistic lock)
+const hasFSA = !!window.showOpenFilePicker;
+// Server mode when loaded over http(s): read/write via the Flask API.
+const SERVER = location.protocol==='http:'||location.protocol==='https:';
+
+/* ---------- open / save ---------- */
+async function loadFromServer(){
+  try{
+    const r=await fetch('/api/weaselwords',{cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    serverEtag=j.etag;
+    loadData(JSON.stringify(j.data), 'weaselwords.json (server)');
+  }catch(e){ $('#fileName').textContent='server load failed'; alert('Couldn\'t load from server: '+e.message); }
+}
+async function saveToServer(){
+  if(!DATA) return;
+  const v=validate(); if(v.errors.length){
+    if(!confirm(v.errors.length+' validation error(s) present. Save anyway?')) return;
+  }
+  const data=JSON.parse(serialize());
+  try{
+    const r=await fetch('/api/weaselwords',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({etag:serverEtag,data})});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===403){ alert('Not authorised to edit (your account isn\'t on the editor list).'); return; }
+    if(r.status===409){
+      if(confirm('Someone else changed the word bank since you loaded it.\nReload the server copy now? (your unsaved edits will be lost)')) loadFromServer();
+      return;
+    }
+    if(!r.ok){ alert('Save failed: '+(j.error||('HTTP '+r.status))+(j.details?'\n- '+j.details.join('\n- '):'')); return; }
+    serverEtag=j.etag; setDirty(false);
+    $('#fileName').textContent='weaselwords.json (server)';
+    const p=$('#dirtyPill'); p.textContent='saved · '+(j.savedBy||'')+''; p.classList.remove('dirty');
+  }catch(e){ alert('Save failed: '+e.message); }
+}
+
+$('#openBtn').onclick=async()=>{
+  if(SERVER){ if(dirty && !confirm('Discard unsaved edits and reload from server?')) return; loadFromServer(); return; }
+  if(hasFSA){
+    try{
+      const [h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      fileHandle=h; const f=await h.getFile();
+      loadData(await f.text(), f.name);
+    }catch(e){ if(e.name!=='AbortError') alert('Open failed: '+e.message); }
+  }else{
+    $('#fileInput').click();
+  }
+};
+$('#fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const fr=new FileReader(); fr.onload=()=>loadData(fr.result,f.name); fr.readAsText(f);
+});
+
+function loadData(text,name){
+  let d; try{ d=JSON.parse(text); }catch(err){ alert('That JSON wouldn\'t parse:\n'+err.message); return; }
+  // normalise expected containers
+  d.categories=d.categories||{}; d.tiers=d.tiers||[]; d.entries=d.entries||[];
+  d.tlaOverrides=d.tlaOverrides||[]; d.calibration=d.calibration||{}; d.meta=d.meta||{};
+  DATA=d;
+  $('#fileName').textContent=name||'weaselwords.json';
+  $('#saveBtn').disabled=false; $('#saveAsBtn').disabled=false;
+  $('#noFile').style.display='none';
+  setDirty(false);
+  renderAll();
+  showTab(currentTab);
+}
+
+function serialize(){
+  // keep stable shape & key order close to original; pretty print indent 2
+  const d=DATA;
+  // sort tiers ascending by max (non-destructive copy)
+  const out={
+    version:d.version, meta:d.meta, categories:d.categories,
+    tiers:[...d.tiers].sort((a,b)=>(+a.max)-(+b.max)),
+    calibration:d.calibration, entries:d.entries, tlaOverrides:d.tlaOverrides
+  };
+  return JSON.stringify(out,null,2)+'\n';
+}
+
+async function doSave(asNew){
+  if(!DATA) return;
+  if(SERVER && !asNew){ return saveToServer(); }   // server mode: POST to API
+  const v=validate(); if(v.errors.length){
+    if(!confirm(v.errors.length+' validation error(s) present. Save anyway?')) return;
+  }
+  const text=serialize();
+  if(hasFSA){
+    try{
+      if(asNew || !fileHandle){
+        fileHandle=await window.showSaveFilePicker({suggestedName:'weaselwords.json',
+          types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      }
+      const w=await fileHandle.createWritable(); await w.write(text); await w.close();
+      $('#fileName').textContent=fileHandle.name||'weaselwords.json';
+      setDirty(false);
+    }catch(e){ if(e.name!=='AbortError') alert('Save failed: '+e.message); }
+  }else{
+    const blob=new Blob([text],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='weaselwords.json'; a.click(); URL.revokeObjectURL(a.href);
+    setDirty(false);
+  }
+}
+$('#saveBtn').onclick=()=>doSave(false);
+$('#saveAsBtn').onclick=()=>doSave(true);
+
+function setDirty(b){
+  dirty=b; const p=$('#dirtyPill');
+  p.textContent=b?'unsaved changes':'saved';
+  p.classList.toggle('dirty',b);
+}
+function touch(){ setDirty(true); runValidation(); }
+window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; }});
+
+/* ---------- tabs ---------- */
+let currentTab='entries';
+$('#tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(t) showTab(t.dataset.tab); });
+function showTab(name){
+  currentTab=name;
+  $$('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  $$('.panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===name));
+  if(!DATA) return;
+  // re-render the panel being shown (defensive: one panel's error can't blank another)
+  try{
+    if(name==='entries') renderEntries();
+    else if(name==='cats') renderCats();
+    else if(name==='tiers') renderTiers();
+    else if(name==='tlas') renderTlas();
+    else if(name==='settings') renderSettings();
+    else if(name==='test') runTest();
+  }catch(err){ console.error('render '+name+' failed:',err); }
+}
+
+/* ================= RENDER ================= */
+function renderAll(){
+  const steps=[renderEntries,renderCats,renderTiers,renderTlas,renderSettings,fillCatFilter,runValidation];
+  for(const fn of steps){ try{ fn(); }catch(err){ console.error(fn.name+' failed:',err); } }
+}
+function catCodes(){ return Object.keys(DATA.categories); }
+function catColorVar(code){ return 'var(--'+code+')'; }
+function catOptions(sel){
+  return catCodes().map(c=>`<option value="${c}" ${c===sel?'selected':''}>${esc(DATA.categories[c].name)} (${c})</option>`).join('');
+}
+function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ---- entries ---- */
+function fillCatFilter(){
+  const cur=$('#catFilter').value;
+  $('#catFilter').innerHTML='<option value="">All categories</option>'+
+    catCodes().map(c=>`<option value="${c}">${esc(DATA.categories[c].name)}</option>`).join('');
+  $('#catFilter').value=cur;
+}
+$('#search').addEventListener('input',renderEntries);
+$('#catFilter').addEventListener('change',renderEntries);
+
+function renderEntries(){
+  const list=$('#entriesList'); if(!DATA){list.innerHTML='';return;}
+  const q=$('#search').value.trim().toLowerCase();
+  const cf=$('#catFilter').value;
+  list.innerHTML='';
+  let shown=0;
+  DATA.entries.forEach((en,i)=>{
+    if(cf && en.category!==cf) return;
+    const hay=((en.match||[]).join(' ')+' '+(en.feedback||'')).toLowerCase();
+    if(q && !hay.includes(q)) return;
+    shown++;
+    const row=document.createElement('div'); row.className='entry'; row.dataset.i=i;
+    row.innerHTML=`
+      <label class="fld"><span>Category</span>
+        <select data-f="category">${catOptions(en.category)}</select></label>
+      <label class="fld"><span>Score</span>
+        <input type="number" min="0" max="5" step="1" data-f="score" value="${en.score!=null?en.score:''}"></label>
+      <label class="fld" style="grid-column:3 / 4"><span>Feedback</span>
+        <input type="text" data-f="feedback" value="${esc(en.feedback)}"></label>
+      <div class="acts">
+        <button data-act="dup">Duplicate</button>
+        <button class="warn" data-act="del">Delete</button>
+      </div>
+      <label class="fld matchcell"><span>Match phrases (one per line) — last word auto-inflects (plural / -ed / -ing)</span>
+        <textarea data-f="match">${esc((en.match||[]).join('\n'))}</textarea></label>
+      <label class="fld" style="grid-column:4; flex-direction:row; align-items:center; gap:6px">
+        <input type="checkbox" data-f="exact" ${en.exact?'checked':''}><span title="Match phrases exactly — no plural/verb expansion">exact</span></label>
+      <div class="rowflags" data-flags></div>`;
+    list.appendChild(row);
+  });
+  if(!shown) list.innerHTML='<div class="empty">No entries match.</div>';
+  $('#entryCount').textContent=DATA.entries.length+' entries total'+(shown!==DATA.entries.length?` · ${shown} shown`:'');
+  flagRows();
+}
+/* per-row inline flags (empty match / feedback) */
+function flagRows(){
+  $$('#entriesList .entry').forEach(row=>{
+    const en=DATA.entries[+row.dataset.i]; if(!en) return;
+    const f=row.querySelector('[data-flags]'); if(!f) return;
+    const msgs=[];
+    if(!en.match||!en.match.length) msgs.push('no match phrases');
+    if(!en.feedback||!en.feedback.trim()) msgs.push('empty feedback');
+    if(!DATA.categories[en.category]) msgs.push('unknown category “'+en.category+'”');
+    f.textContent = msgs.length?('⚠ '+msgs.join(' · ')):'';
+  });
+}
+$('#entriesList').addEventListener('input',e=>{
+  const row=e.target.closest('.entry'); if(!row) return;
+  const i=+row.dataset.i, f=e.target.dataset.f, en=DATA.entries[i];
+  if(f==='category') en.category=e.target.value;
+  else if(f==='score'){ const v=e.target.value; en.score = v===''?null:(+v); }
+  else if(f==='feedback') en.feedback=e.target.value;
+  else if(f==='match') en.match=e.target.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  else if(f==='exact'){ if(e.target.checked) en.exact=true; else delete en.exact; }
+  touch();
+});
+$('#entriesList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  const row=e.target.closest('.entry'); const i=+row.dataset.i;
+  if(b.dataset.act==='del'){ if(confirm('Delete this entry?')){ DATA.entries.splice(i,1); renderEntries(); touch(); } }
+  if(b.dataset.act==='dup'){ DATA.entries.splice(i+1,0,JSON.parse(JSON.stringify(DATA.entries[i]))); renderEntries(); touch(); }
+});
+$('#addEntry').onclick=()=>{
+  const first=catCodes()[0]||'cb';
+  DATA.entries.unshift({category:first,score:DATA.categories[first]?.defaultScore??3,match:[],feedback:''});
+  $('#search').value=''; $('#catFilter').value=''; renderEntries(); touch();
+  $('#entriesList').scrollIntoView({block:'start'});
+};
+
+/* ---- categories ---- */
+function renderCats(){
+  const list=$('#catsList'); if(!DATA){list.innerHTML='';return;}
+  list.innerHTML='';
+  for(const code of catCodes()){
+    const c=DATA.categories[code];
+    const row=document.createElement('div'); row.className='cardrow'; row.dataset.code=code;
+    const used=DATA.entries.filter(e=>e.category===code).length;
+    row.innerHTML=`
+      <label class="fld"><span>Code</span><input type="text" data-f="code" value="${esc(code)}" style="width:80px"></label>
+      <label class="fld"><span>Name</span><input type="text" data-f="name" value="${esc(c.name)}"></label>
+      <label class="fld"><span>Colour</span><input type="text" data-f="color" value="${esc(c.color)}" style="width:100px"></label>
+      <label class="fld"><span>Default score</span><input type="number" data-f="defaultScore" value="${c.defaultScore??''}" style="width:90px"></label>
+      <label class="fld" style="flex:1 1 200px"><span>Blurb</span><input type="text" data-f="blurb" value="${esc(c.blurb)}"></label>
+      <div class="acts"><span class="ver">${used} entr${used===1?'y':'ies'}</span>
+        <button class="warn" data-act="delcat">Delete</button></div>`;
+    list.appendChild(row);
+  }
+}
+$('#catsList').addEventListener('input',e=>{
+  const row=e.target.closest('.cardrow'); const code=row.dataset.code; const f=e.target.dataset.f;
+  const c=DATA.categories[code];
+  if(f==='code'){
+    const nc=e.target.value.trim(); if(!nc||nc===code) return;
+    if(DATA.categories[nc]){ return; } // don't clobber; validation will not trigger till blur anyway
+    // rebuild preserving order
+    const newCats={}; for(const k of catCodes()) newCats[k===code?nc:k]=DATA.categories[k];
+    DATA.categories=newCats;
+    DATA.entries.forEach(en=>{ if(en.category===code) en.category=nc; });
+    DATA.tlaOverrides.forEach(()=>{});
+    renderAll(); showTab('cats'); touch(); return;
+  }
+  if(f==='defaultScore') c.defaultScore = e.target.value===''?undefined:(+e.target.value);
+  else c[f]=e.target.value;
+  if(f==='name'||f==='color') { fillCatFilter(); }
+  touch();
+});
+$('#catsList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.dataset.act!=='delcat') return;
+  const code=e.target.closest('.cardrow').dataset.code;
+  const used=DATA.entries.filter(en=>en.category===code).length;
+  if(used){ alert('Can\'t delete: '+used+' entr'+(used===1?'y':'ies')+' still use “'+code+'”. Reassign them first.'); return; }
+  if(confirm('Delete category “'+code+'”?')){ delete DATA.categories[code]; renderAll(); showTab('cats'); touch(); }
+});
+$('#addCat').onclick=()=>{
+  let n=1; while(DATA.categories['new'+n]) n++;
+  DATA.categories['new'+n]={name:'New Category',color:'#888888',defaultScore:3,blurb:''};
+  renderAll(); showTab('cats'); touch();
+};
+
+/* ---- tiers ---- */
+function renderTiers(){
+  const list=$('#tiersList'); if(!DATA){list.innerHTML='';return;}
+  list.innerHTML='';
+  DATA.tiers.forEach((t,i)=>{
+    const row=document.createElement('div'); row.className='cardrow'; row.dataset.i=i;
+    row.innerHTML=`
+      <label class="fld"><span>Max (≤ WS)</span><input type="number" data-f="max" value="${t.max}" style="width:90px"></label>
+      <label class="fld"><span>Label</span><input type="text" data-f="label" value="${esc(t.label)}"></label>
+      <label class="fld" style="flex:1 1 220px"><span>Blurb</span><input type="text" data-f="blurb" value="${esc(t.blurb)}"></label>
+      <div class="acts"><button class="warn" data-act="deltier">Delete</button></div>`;
+    list.appendChild(row);
+  });
+}
+$('#tiersList').addEventListener('input',e=>{
+  const i=+e.target.closest('.cardrow').dataset.i, f=e.target.dataset.f, t=DATA.tiers[i];
+  if(f==='max') t.max=+e.target.value; else t[f]=e.target.value; touch();
+});
+$('#tiersList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.dataset.act!=='deltier') return;
+  const i=+e.target.closest('.cardrow').dataset.i;
+  if(confirm('Delete tier “'+(DATA.tiers[i].label||'')+'”?')){ DATA.tiers.splice(i,1); renderTiers(); touch(); }
+});
+$('#addTier').onclick=()=>{ DATA.tiers.push({max:100,label:'New Tier',blurb:''}); renderTiers(); touch(); };
+
+/* ---- tla overrides ---- */
+function renderTlas(){
+  const list=$('#tlasList'); if(!DATA){list.innerHTML='';return;}
+  list.innerHTML='';
+  (DATA.tlaOverrides||[]).forEach((o,i)=>{
+    const row=document.createElement('div'); row.className='cardrow'; row.dataset.i=i; row.style.alignItems='flex-start';
+    row.innerHTML=`
+      <label class="fld" style="width:160px"><span>Acronyms (one per line)</span>
+        <textarea data-f="match">${esc((o.match||[]).join('\n'))}</textarea></label>
+      <label class="fld" style="flex:1 1 260px"><span>Feedback</span><input type="text" data-f="feedback" value="${esc(o.feedback)}"></label>
+      <label class="fld"><span>Score (blank = default)</span><input type="number" data-f="score" value="${o.score!=null?o.score:''}" style="width:120px"></label>
+      <div class="acts"><button class="warn" data-act="deltla">Delete</button></div>`;
+    list.appendChild(row);
+  });
+  if(!DATA.tlaOverrides.length) list.innerHTML+='<div class="empty">No overrides — acronyms still get generic detection.</div>';
+}
+$('#tlasList').addEventListener('input',e=>{
+  const i=+e.target.closest('.cardrow').dataset.i, f=e.target.dataset.f, o=DATA.tlaOverrides[i];
+  if(f==='match') o.match=e.target.value.split('\n').map(s=>s.trim()).filter(Boolean);
+  else if(f==='score'){ const v=e.target.value; if(v==='') delete o.score; else o.score=+v; }
+  else o[f]=e.target.value;
+  touch();
+});
+$('#tlasList').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b||b.dataset.act!=='deltla') return;
+  const i=+e.target.closest('.cardrow').dataset.i;
+  if(confirm('Delete this override?')){ DATA.tlaOverrides.splice(i,1); renderTlas(); touch(); }
+});
+$('#addTla').onclick=()=>{ DATA.tlaOverrides.push({match:[],feedback:''}); renderTlas(); touch(); };
+
+/* ---- settings ---- */
+function renderSettings(){
+  if(!DATA) return;
+  $('#setVersion').value=DATA.version||'';
+  $('#setPerWords').value=DATA.calibration.perWords??'';
+  $('#setSat').value=DATA.calibration.fillSaturationScore??'';
+  $('#setName').value=DATA.meta.name||'';
+  $('#setNotes').value=DATA.meta.notes||'';
+  $('#setCalNote').value=DATA.calibration.note||'';
+}
+$('#setVersion').addEventListener('input',e=>{DATA.version=e.target.value;touch();});
+$('#setPerWords').addEventListener('input',e=>{DATA.calibration.perWords=+e.target.value;touch();});
+$('#setSat').addEventListener('input',e=>{DATA.calibration.fillSaturationScore=+e.target.value;touch();});
+$('#setName').addEventListener('input',e=>{DATA.meta.name=e.target.value;touch();});
+$('#setNotes').addEventListener('input',e=>{DATA.meta.notes=e.target.value;touch();});
+$('#setCalNote').addEventListener('input',e=>{DATA.calibration.note=e.target.value;touch();});
+$('#bumpVer').onclick=()=>{
+  const v=(DATA.version||'0.0.0').split('.').map(n=>+n||0);
+  while(v.length<3)v.push(0); v[2]++; DATA.version=v.join('.');
+  $('#setVersion').value=DATA.version; touch();
+};
+
+/* ================= VALIDATION ================= */
+function validate(){
+  const errors=[], warns=[];
+  if(!DATA) return {errors,warns};
+  const cats=new Set(catCodes());
+  const seen=new Map(); // phrase -> [entry indexes]
+  DATA.entries.forEach((en,i)=>{
+    if(!cats.has(en.category)) errors.push(`Entry #${i+1}: unknown category “${en.category}”.`);
+    if(!en.match||!en.match.length) errors.push(`Entry #${i+1}: no match phrases.`);
+    if(!en.feedback||!en.feedback.trim()) warns.push(`Entry #${i+1}: empty feedback.`);
+    const sc=en.score!=null?en.score:(DATA.categories[en.category]?.defaultScore);
+    if(sc==null||isNaN(sc)) errors.push(`Entry #${i+1}: no numeric score (and category has no default).`);
+    (en.match||[]).forEach(p=>{
+      const k=p.toLowerCase();
+      if(!seen.has(k)) seen.set(k,[]); seen.get(k).push(i+1);
+    });
+  });
+  for(const [k,ids] of seen){ if(ids.length>1) warns.push(`Phrase “${k}” appears in ${ids.length} entries (#${ids.join(', #')}).`); }
+  // tiers
+  if(DATA.tiers.length){
+    const maxes=DATA.tiers.map(t=>+t.max);
+    if(Math.max(...maxes)<100) warns.push('Top tier max is below 100 — very weaselly docs may fall through.');
+    DATA.tiers.forEach((t,i)=>{ if(!t.label) errors.push(`Tier #${i+1}: missing label.`); });
+  } else errors.push('No tiers defined.');
+  return {errors,warns};
+}
+function runValidation(){
+  const {errors,warns}=validate();
+  const p=$('#valPill');
+  p.classList.remove('ok','bad');
+  if(errors.length){ p.textContent=errors.length+' error'+(errors.length>1?'s':''); p.classList.add('bad'); }
+  else if(warns.length){ p.textContent=warns.length+' warning'+(warns.length>1?'s':''); }
+  else { p.textContent='all valid'; p.classList.add('ok'); }
+  // render detail box at top of entries panel
+  let box=$('#valbox'); if(!box){ box=document.createElement('div'); box.id='valbox'; $('[data-panel="entries"]').prepend(box); }
+  box.innerHTML = errors.map(m=>`<div class="vmsg err">⛔ ${esc(m)}</div>`).join('')
+               + warns.map(m=>`<div class="vmsg warnv">⚠ ${esc(m)}</div>`).join('');
+}
+
+/* ================= ENGINE (mirror of app) ================= */
+function escapeRx(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+/* mirror of the app: auto-inflect the last word unless entry.exact */
+function inflect(w){
+  const W=w.toLowerCase(); const f=new Set([W]);
+  if(/(s|x|z|ch|sh)$/.test(W)) f.add(W+'es');
+  else if(/[^aeiou]y$/.test(W)) f.add(W.slice(0,-1)+'ies');
+  else f.add(W+'s');
+  if(W.endsWith('e')){ f.add(W+'d'); f.add(W.slice(0,-1)+'ing'); }
+  else if(/[^aeiou]y$/.test(W)){ f.add(W.slice(0,-1)+'ied'); f.add(W+'ing'); }
+  else { f.add(W+'ed'); f.add(W+'ing'); }
+  return [...f];
+}
+function phraseRegex(phrase, exact){
+  const words=phrase.trim().split(/\s+/); const last=words[words.length-1];
+  let lastPart;
+  if(!exact && /^[a-z]+$/i.test(last) && last.length>=3)
+    lastPart='(?:'+inflect(last).sort((a,b)=>b.length-a.length).map(escapeRx).join('|')+')';
+  else lastPart=escapeRx(last);
+  const head=words.slice(0,-1).map(escapeRx).join('\\s+');
+  const body=(head?head+'\\s+':'')+lastPart;
+  const pre=/^\w/.test(phrase)?'\\b':''; const post=/[A-Za-z0-9]$/.test(last)?'\\b':'';
+  return new RegExp(pre+body+post,'gi');
+}
+function buildMatchers(){
+  const M=[]; let order=0;
+  for(const e of DATA.entries){
+    const base=DATA.categories[e.category]||{};
+    const score=(e.score!=null)?e.score:(base.defaultScore||1);
+    for(const phrase of (e.match||[])){
+      M.push({rx:phraseRegex(phrase,e.exact),category:e.category,score,feedback:e.feedback,len:phrase.length,order:order++});
+    }
+  }
+  return M;
+}
+const TLA_STOP=new Set(['AM','PM','OK','TV','A','I','MR','MS','DR','ST']);
+function findTLAs(text){
+  const out=[]; const tlaCat=DATA.categories.tla||{defaultScore:1}; let order=900000;
+  for(const o of (DATA.tlaOverrides||[])){
+    const score=(o.score!=null)?o.score:(tlaCat.defaultScore||1);
+    for(const p of (o.match||[])){
+      const rx=new RegExp('\\b'+escapeRx(p)+'\\b','g'); let m;
+      while((m=rx.exec(text))!==null) out.push({start:m.index,end:m.index+m[0].length,category:'tla',score,feedback:o.feedback,len:m[0].length,order:order++});
+    }
+  }
+  const grx=/\b[A-Z0-9]{2,6}s?\b/g; let g;
+  while((g=grx.exec(text))!==null){
+    const tok=g[0], core=tok.replace(/s$/,'');
+    if(TLA_STOP.has(core)||TLA_STOP.has(tok)) continue;
+    if(!/[A-Z]/.test(core)) continue; if(/^\d+s?$/.test(tok)) continue;
+    out.push({start:g.index,end:g.index+tok.length,category:'tla',score:(tlaCat.defaultScore||1),
+      feedback:'(generic acronym detection)',len:tok.length,order:order++});
+  }
+  return out;
+}
+function analyse(text){
+  let cands=[];
+  for(const mm of buildMatchers()){ let m; mm.rx.lastIndex=0;
+    while((m=mm.rx.exec(text))!==null){ cands.push({start:m.index,end:m.index+m[0].length,category:mm.category,score:mm.score,feedback:mm.feedback,len:m[0].length,order:mm.order}); if(m.index===mm.rx.lastIndex) mm.rx.lastIndex++; } }
+  cands=cands.concat(findTLAs(text));
+  cands.sort((a,b)=>(b.score-a.score)||(b.len-a.len)||(a.order-b.order)||(a.start-b.start));
+  const occ=[],acc=[];
+  for(const c of cands){ let clash=false; for(const o of occ){ if(c.start<o.end&&c.end>o.start){clash=true;break;} } if(!clash){occ.push({start:c.start,end:c.end});acc.push(c);} }
+  acc.sort((a,b)=>a.start-b.start);
+  const words=(text.trim().match(/\S+/g)||[]).length||1;
+  let pts=0; const byCat={}; for(const code of catCodes()) byCat[code]={points:0,count:0};
+  for(const a of acc){ pts+=a.score; if(byCat[a.category]){byCat[a.category].points+=a.score;byCat[a.category].count++;} }
+  const sat=DATA.calibration.fillSaturationScore||50;
+  const ws=Math.min(100,pts/words*100); const fill=Math.min(100,ws/sat*100);
+  const tier=[...DATA.tiers].sort((a,b)=>a.max-b.max).find(t=>ws<=t.max)||{label:'(no tier)'};
+  return {acc,words,pts,ws,fill,tier,byCat,text};
+}
+
+/* ---- tester ---- */
+$('#testIn').addEventListener('input',runTest);
+function runTest(){
+  if(!DATA){ return; }
+  const t=$('#testIn').value;
+  const R=analyse(t);
+  // render highlighted
+  const doc=$('#testRender'); doc.innerHTML='';
+  let pos=0;
+  for(const a of R.acc){
+    if(a.start>pos) doc.appendChild(document.createTextNode(t.slice(pos,a.start)));
+    const m=document.createElement('mark'); m.className=a.category; m.textContent=t.slice(a.start,a.end);
+    m.title=catName(a.category)+' · '+a.score+'pt · '+(a.feedback||''); doc.appendChild(m); pos=a.end;
+  }
+  if(pos<t.length) doc.appendChild(document.createTextNode(t.slice(pos)));
+  if(!t.trim()) doc.innerHTML='<span class="empty">Type something on the left…</span>';
+  // score summary
+  const cats=catCodes().filter(c=>R.byCat[c]&&R.byCat[c].count).map(c=>`${esc(DATA.categories[c].name)}: ${R.byCat[c].count} (${R.byCat[c].points}pt)`).join(' · ');
+  $('#testScore').innerHTML = t.trim()
+    ? `<b>WS ${Math.round(R.ws)}</b> / 100 → <b>${esc(R.tier.label)}</b> · ${R.pts} pts over ${R.words} words · gauge ${Math.round(R.fill)}%<br><span class="ver">${cats||'no hits'}</span>`
+    : '';
+  // hit list
+  $('#testOut').innerHTML = R.acc.map(a=>`<div class="hit"><span class="catdot" style="background:${catColorVar(a.category)}"></span><b>${esc(t.slice(a.start,a.end))}</b> — ${esc(catName(a.category))} (${a.score}pt)<br><span class="ver">${esc(a.feedback||'')}</span></div>`).join('');
+}
+function catName(c){ return (DATA.categories[c]&&DATA.categories[c].name)||c; }
+
+/* keyboard: Ctrl/Cmd+S */
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){ e.preventDefault(); if(DATA) doSave(false); }
+});
+
+/* ---------- startup: in server mode, relabel buttons + auto-load ---------- */
+if(SERVER){
+  $('#openBtn').textContent='Reload from server';
+  $('#saveBtn').textContent='Save to server';
+  $('#saveAsBtn').textContent='Download copy';
+  $('#noFile').innerHTML='Loading the word bank from the server…';
+  loadFromServer();
+}
+</script>
+</body>
+</html>

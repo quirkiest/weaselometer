@@ -1,0 +1,12 @@
+services:
+  weaselometer:
+    build: .
+    ports:
+      - "3334:5000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
